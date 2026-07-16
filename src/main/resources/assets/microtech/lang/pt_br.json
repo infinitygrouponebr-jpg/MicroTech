@@ -440,5 +440,7 @@
     "message.microtech.tech_table.complete_piece": "Peça concluída.",
     "message.microtech.tech_table.unstable_piece": "Peça instável, mas concluída.",
     "message.microtech.tech_table.failed_piece": "A peça foi arruinada.",
-    "message.microtech.tech_table.failed_material_lost": "Falha! Material perdido."
+    "message.microtech.tech_table.failed_material_lost": "Falha! Material perdido.",
+    "gui.microtech.energy_label": "Energia",
+    "message.microtech.tech_miner.open_output_failed": "Nao foi possivel abrir o inventario da mineradora."
 }

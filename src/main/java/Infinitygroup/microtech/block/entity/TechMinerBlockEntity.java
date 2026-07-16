@@ -453,6 +453,10 @@ public class TechMinerBlockEntity extends BlockEntity implements Container, Menu
         return this.hasScanResult;
     }
 
+    public boolean isManuallyPaused() {
+        return this.manuallyPaused;
+    }
+
     public void onUpgradesChanged() {
         this.clampEnergyStored();
         this.syncClient();
@@ -1290,8 +1294,16 @@ public class TechMinerBlockEntity extends BlockEntity implements Container, Menu
 
         @Override
         public int receiveEnergy(int toReceive, boolean simulate) {
-            int limit = TechMinerBlockEntity.this.getEffectiveReceiveLimit();
-            int space = TechMinerBlockEntity.this.getEffectiveMaxEnergy() - this.energy;
+            if (toReceive <= 0) {
+                return 0;
+            }
+
+            int limit = Math.max(0, TechMinerBlockEntity.this.getEffectiveReceiveLimit());
+            int space = Math.max(0, TechMinerBlockEntity.this.getEffectiveMaxEnergy() - this.energy);
+            if (limit <= 0 || space <= 0) {
+                return 0;
+            }
+
             int received = Math.max(0, Math.min(toReceive, Math.min(limit, space)));
             if (!simulate && received > 0) {
                 this.energy += received;
@@ -1307,7 +1319,8 @@ public class TechMinerBlockEntity extends BlockEntity implements Container, Menu
 
         @Override
         public boolean canReceive() {
-            return this.getEnergyStored() < TechMinerBlockEntity.this.getEffectiveMaxEnergy();
+            return TechMinerBlockEntity.this.getEffectiveReceiveLimit() > 0
+                    && this.getEnergyStored() < TechMinerBlockEntity.this.getEffectiveMaxEnergy();
         }
 
         @Override

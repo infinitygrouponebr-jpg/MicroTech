@@ -152,6 +152,10 @@ public class TechMinerOutputMenu extends AbstractContainerMenu {
 
     @Override
     public boolean clickMenuButton(Player player, int id) {
+        if (player.level().isClientSide) {
+            return id == 0;
+        }
+
         if (id == 0 && this.blockEntity != null && player instanceof ServerPlayer serverPlayer && this.stillValid(player)) {
             serverPlayer.openMenu(new SimpleMenuProvider(
                     (containerId, inventory, ignored) -> new TechMinerMenu(containerId, inventory, this.blockEntity, this.access),

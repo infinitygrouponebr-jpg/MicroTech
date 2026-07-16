@@ -440,5 +440,7 @@
     "message.microtech.tech_table.complete_piece": "Piece completed.",
     "message.microtech.tech_table.unstable_piece": "Piece unstable, but completed.",
     "message.microtech.tech_table.failed_piece": "The part was ruined.",
-    "message.microtech.tech_table.failed_material_lost": "Failed! Material lost."
+    "message.microtech.tech_table.failed_material_lost": "Failed! Material lost.",
+    "gui.microtech.energy_label": "Energy",
+    "message.microtech.tech_miner.open_output_failed": "Could not open the Tech Miner output inventory."
 }
