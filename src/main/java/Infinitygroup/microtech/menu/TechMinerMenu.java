@@ -25,12 +25,13 @@ import net.neoforged.neoforge.items.SlotItemHandler;
 import java.util.function.IntSupplier;
 
 public class TechMinerMenu extends AbstractContainerMenu {
-    public static final int UPGRADE_X = 177;
-    public static final int UPGRADE_Y = 32;
+    public static final int SLOT_SIZE = 18;
+    public static final int[] UPGRADE_SLOT_X = {28, 8, 48, 68};
+    public static final int UPGRADE_Y = 26;
     public static final int UPGRADE_SLOT_COUNT = TechMinerBlockEntity.UPGRADE_SLOTS;
-    public static final int PLAYER_INV_X = 57;
-    public static final int PLAYER_INV_Y = 152;
-    public static final int HOTBAR_Y = 210;
+    public static final int PLAYER_INV_X = 6;
+    public static final int PLAYER_INV_Y = 156;
+    public static final int HOTBAR_Y = 214;
     private static final String MACHINE_ID = "microtech:tech_miner";
     private static final int BUTTON_SCAN = 0;
     private static final int BUTTON_START = 1;
@@ -53,7 +54,7 @@ public class TechMinerMenu extends AbstractContainerMenu {
     private final SyncedInt targetCount = new SyncedInt();
     private int syncedFilterCapacity;
     private int syncedActiveFilterEntries;
-    private int syncedStatusOrdinal;
+    private int syncedStatusOrdinal = MachineStatus.IDLE.ordinal();
     private int syncedFlags;
     private int blockPosX;
     private int blockPosY;
@@ -82,7 +83,7 @@ public class TechMinerMenu extends AbstractContainerMenu {
         this.addMachineDataSlots();
 
         for (int slot = 0; slot < UPGRADE_SLOT_COUNT; slot++) {
-            this.addSlot(new SlotItemHandler(this.upgradeInventory, slot, UPGRADE_X, UPGRADE_Y + slot * 20));
+            this.addSlot(new SlotItemHandler(this.upgradeInventory, slot, UPGRADE_SLOT_X[slot], UPGRADE_Y));
         }
 
         this.addPlayerInventory(playerInventory);
@@ -229,14 +230,14 @@ public class TechMinerMenu extends AbstractContainerMenu {
     private void addPlayerInventory(Inventory playerInventory) {
         for (int row = 0; row < 3; ++row) {
             for (int column = 0; column < 9; ++column) {
-                this.addSlot(new Slot(playerInventory, column + row * 9 + 9, PLAYER_INV_X + column * 18, PLAYER_INV_Y + row * 18));
+                this.addSlot(new Slot(playerInventory, column + row * 9 + 9, PLAYER_INV_X + column * SLOT_SIZE, PLAYER_INV_Y + row * SLOT_SIZE));
             }
         }
     }
 
     private void addHotbar(Inventory playerInventory) {
         for (int column = 0; column < 9; ++column) {
-            this.addSlot(new Slot(playerInventory, column, PLAYER_INV_X + column * 18, HOTBAR_Y));
+            this.addSlot(new Slot(playerInventory, column, PLAYER_INV_X + column * SLOT_SIZE, HOTBAR_Y));
         }
     }
 
@@ -380,6 +381,11 @@ public class TechMinerMenu extends AbstractContainerMenu {
         return MachineStatus.values()[Mth.clamp(this.syncedStatusOrdinal, 0, MachineStatus.values().length - 1)];
     }
 
+    public Component getStatusText() {
+        MachineStatus status = this.getStatus();
+        return status != null ? status.getText() : Component.translatable("status.microtech.idle");
+    }
+
     public MachineStatus getStatus(Level level) {
         return this.getStatus();
     }
@@ -434,6 +440,18 @@ public class TechMinerMenu extends AbstractContainerMenu {
 
     public int getActiveFilterEntryCount() {
         return this.blockEntity != null ? this.blockEntity.getActiveFilterEntryCount() : Math.max(0, this.syncedActiveFilterEntries);
+    }
+
+    public Component getFilterStatusText() {
+        int capacity = this.getFilterCapacity();
+        if (capacity <= 0) {
+            return Component.translatable("gui.microtech.tech_miner.filter_disabled_value");
+        }
+        return Component.translatable("gui.microtech.tech_miner.filter_active_value", this.getActiveFilterEntryCount(), capacity);
+    }
+
+    public Component getNextTargetText() {
+        return Component.translatable("gui.microtech.tech_miner.no_targets");
     }
 
     public int getActiveFilterEntryCount(Level level) {
