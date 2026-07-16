@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "microtech:block/tech_miner", "y": 180 },
+    "facing=east": { "model": "microtech:block/tech_miner", "y": 270 },
+    "facing=south": { "model": "microtech:block/tech_miner", "y": 0 },
+    "facing=west": { "model": "microtech:block/tech_miner", "y": 90 }
+  }
+}

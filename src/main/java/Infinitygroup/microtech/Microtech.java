@@ -39,6 +39,7 @@ import Infinitygroup.microtech.item.TechCrusherBlockItem;
 import Infinitygroup.microtech.item.TechTableBlockItem;
 import Infinitygroup.microtech.machine.MachineUpgradeItem;
 import Infinitygroup.microtech.machine.MachineUpgradeType;
+import Infinitygroup.microtech.network.TechMinerFilterPayload;
 import Infinitygroup.microtech.network.TechSwordAbilitySelectionPayload;
 import Infinitygroup.microtech.client.screen.BasicMachineScreen;
 import Infinitygroup.microtech.client.screen.BatteryScreen;
@@ -46,6 +47,8 @@ import Infinitygroup.microtech.client.screen.BatteryT2Screen;
 import Infinitygroup.microtech.client.screen.EvoTableScreen;
 import Infinitygroup.microtech.client.screen.ElectricFurnaceScreen;
 import Infinitygroup.microtech.client.screen.SolarPanelScreen;
+import Infinitygroup.microtech.client.screen.TechMinerFilterScreen;
+import Infinitygroup.microtech.client.screen.TechMinerOutputScreen;
 import Infinitygroup.microtech.client.screen.TechMinerScreen;
 import Infinitygroup.microtech.client.screen.TechCrusherScreen;
 import Infinitygroup.microtech.client.TechArmorClientConfig;
@@ -57,9 +60,13 @@ import Infinitygroup.microtech.menu.BatteryT2Menu;
 import Infinitygroup.microtech.menu.EvoTableMenu;
 import Infinitygroup.microtech.menu.ElectricFurnaceMenu;
 import Infinitygroup.microtech.menu.SolarPanelMenu;
+import Infinitygroup.microtech.menu.TechMinerFilterMenu;
 import Infinitygroup.microtech.menu.TechMinerMenu;
+import Infinitygroup.microtech.menu.TechMinerOutputMenu;
 import Infinitygroup.microtech.menu.TechCrusherMenu;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -178,6 +185,10 @@ public class Microtech {
             () -> BlockEntityType.Builder.of(TechMinerBlockEntity::new, TECH_MINER.get()).build(null));
     public static final DeferredHolder<MenuType<?>, MenuType<TechMinerMenu>> TECH_MINER_MENU = MENUS.register("tech_miner_menu",
             () -> new MenuType<>(TechMinerMenu::new, FeatureFlags.DEFAULT_FLAGS));
+    public static final DeferredHolder<MenuType<?>, MenuType<TechMinerOutputMenu>> TECH_MINER_OUTPUT_MENU = MENUS.register("tech_miner_output_menu",
+            () -> new MenuType<>(TechMinerOutputMenu::new, FeatureFlags.DEFAULT_FLAGS));
+    public static final DeferredHolder<MenuType<?>, MenuType<TechMinerFilterMenu>> TECH_MINER_FILTER_MENU = MENUS.register("tech_miner_filter_menu",
+            () -> new MenuType<>(TechMinerFilterMenu::new, FeatureFlags.DEFAULT_FLAGS));
 
     public static final DeferredBlock<TechCrusherBlock> TECH_CRUSHER = BLOCKS.register("tech_crusher",
             () -> new TechCrusherBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(4.2F, 6.0F).requiresCorrectToolForDrops().noOcclusion().sound(SoundType.METAL)));
@@ -224,6 +235,10 @@ public class Microtech {
     public static final DeferredItem<MachineUpgradeItem> RANGE_CHIP = registerUpgradeItem("range_chip", MachineUpgradeType.RANGE);
     public static final DeferredItem<MachineUpgradeItem> DEPTH_CHIP = registerUpgradeItem("depth_chip", MachineUpgradeType.DEPTH);
     public static final DeferredItem<MachineUpgradeItem> FILTER_CHIP = registerUpgradeItem("filter_chip", MachineUpgradeType.FILTER);
+    public static final DeferredItem<MachineUpgradeItem> FILTER_UPGRADE_T1 = registerUpgradeItem("filter_upgrade_t1", MachineUpgradeType.FILTER_UPGRADE_T1, 1);
+    public static final DeferredItem<MachineUpgradeItem> FILTER_UPGRADE_T2 = registerUpgradeItem("filter_upgrade_t2", MachineUpgradeType.FILTER_UPGRADE_T2, 1);
+    public static final DeferredItem<MachineUpgradeItem> FILTER_UPGRADE_T3 = registerUpgradeItem("filter_upgrade_t3", MachineUpgradeType.FILTER_UPGRADE_T3, 1);
+    public static final DeferredItem<MachineUpgradeItem> FILTER_UPGRADE_T4 = registerUpgradeItem("filter_upgrade_t4", MachineUpgradeType.FILTER_UPGRADE_T4, 1);
     public static final DeferredItem<MachineUpgradeItem> PRIORITY_CHIP = registerUpgradeItem("priority_chip", MachineUpgradeType.PRIORITY);
     public static final DeferredItem<MachineUpgradeItem> AREA_CHIP = registerUpgradeItem("area_chip", MachineUpgradeType.AREA);
     public static final DeferredItem<MachineUpgradeItem> YIELD_CHIP = registerUpgradeItem("yield_chip", MachineUpgradeType.YIELD);
@@ -302,6 +317,10 @@ public class Microtech {
                         output.accept(RANGE_CHIP.get());
                         output.accept(AREA_CHIP.get());
                         output.accept(FILTER_CHIP.get());
+                        output.accept(FILTER_UPGRADE_T1.get());
+                        output.accept(FILTER_UPGRADE_T2.get());
+                        output.accept(FILTER_UPGRADE_T3.get());
+                        output.accept(FILTER_UPGRADE_T4.get());
                         output.accept(FORTUNE_CHIP.get());
                         output.accept(SOLAR_FOCUS_CHIP.get());
                         output.accept(TECH_ARMOR_HELMET.get());
@@ -339,6 +358,10 @@ public class Microtech {
         return ITEMS.register(name, () -> new MachineUpgradeItem(upgradeType, new Item.Properties().stacksTo(64).rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
     }
 
+    private static DeferredItem<MachineUpgradeItem> registerUpgradeItem(String name, MachineUpgradeType upgradeType, int stackSize) {
+        return ITEMS.register(name, () -> new MachineUpgradeItem(upgradeType, new Item.Properties().stacksTo(stackSize).rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
+    }
+
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
         event.registrar(MODID).playToServer(TechSwordAbilitySelectionPayload.TYPE, TechSwordAbilitySelectionPayload.STREAM_CODEC, (payload, context) ->
                 context.enqueueWork(() -> {
@@ -366,6 +389,53 @@ public class Microtech {
                     TechSwordData.setSelectedActiveAbility(stack, payload.selectedAbility());
                     player.getInventory().setChanged();
                     player.containerMenu.broadcastChanges();
+                }));
+        event.registrar(MODID).playToServer(TechMinerFilterPayload.TYPE, TechMinerFilterPayload.STREAM_CODEC, (payload, context) ->
+                context.enqueueWork(() -> {
+                    if (!(context.player() instanceof ServerPlayer player)) {
+                        return;
+                    }
+                    if (!(player.containerMenu instanceof TechMinerFilterMenu menu)) {
+                        return;
+                    }
+
+                    BlockPos pos = new BlockPos(payload.x(), payload.y(), payload.z());
+                    if (!pos.equals(menu.getBlockPos())) {
+                        return;
+                    }
+                    if (!(player.level().getBlockEntity(pos) instanceof TechMinerBlockEntity blockEntity)) {
+                        return;
+                    }
+                    if (!TechMinerMenu.isUsable(blockEntity, player)) {
+                        return;
+                    }
+                    if (!blockEntity.hasFilterUpgrade()) {
+                        player.displayClientMessage(Component.translatable("message.microtech.tech_miner.filter_requires_upgrade"), true);
+                        return;
+                    }
+
+                    if (payload.action() == TechMinerFilterPayload.ACTION_CLEAR) {
+                        blockEntity.clearFilterEntries();
+                        return;
+                    }
+                    if (payload.index() < 0 || payload.index() >= TechMinerBlockEntity.MAX_FILTER_ENTRIES) {
+                        return;
+                    }
+                    if (payload.action() == TechMinerFilterPayload.ACTION_REMOVE) {
+                        blockEntity.removeFilterEntry(payload.index());
+                        return;
+                    }
+                    if (payload.action() != TechMinerFilterPayload.ACTION_SET || payload.index() >= blockEntity.getFilterCapacity()) {
+                        return;
+                    }
+
+                    ResourceLocation blockId;
+                    try {
+                        blockId = ResourceLocation.parse(payload.blockId());
+                    } catch (Exception ignored) {
+                        return;
+                    }
+                    blockEntity.setFilterEntry(payload.index(), blockId, player);
                 }));
     }
 
@@ -411,6 +481,8 @@ public class Microtech {
             event.register(Microtech.ELECTRIC_FURNACE_T1_MENU.get(), ElectricFurnaceScreen::new);
             event.register(Microtech.SOLAR_PANEL_T1_MENU.get(), SolarPanelScreen::new);
             event.register(Microtech.TECH_MINER_MENU.get(), TechMinerScreen::new);
+            event.register(Microtech.TECH_MINER_OUTPUT_MENU.get(), TechMinerOutputScreen::new);
+            event.register(Microtech.TECH_MINER_FILTER_MENU.get(), TechMinerFilterScreen::new);
             event.register(Microtech.TECH_CRUSHER_MENU.get(), TechCrusherScreen::new);
         }
 

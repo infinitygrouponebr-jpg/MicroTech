@@ -1,0 +1,49 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "microtech:block/cable_t1"
+      }
+    },
+    {
+      "when": { "north": "true" },
+      "apply": {
+        "model": "microtech:block/cable_t1_arm_horizontal"
+      }
+    },
+    {
+      "when": { "south": "true" },
+      "apply": {
+        "model": "microtech:block/cable_t1_arm_horizontal",
+        "y": 180
+      }
+    },
+    {
+      "when": { "east": "true" },
+      "apply": {
+        "model": "microtech:block/cable_t1_arm_horizontal",
+        "y": 90
+      }
+    },
+    {
+      "when": { "west": "true" },
+      "apply": {
+        "model": "microtech:block/cable_t1_arm_horizontal",
+        "y": 270
+      }
+    },
+    {
+      "when": { "up": "true" },
+      "apply": {
+        "model": "microtech:block/cable_t1_arm_vertical"
+      }
+    },
+    {
+      "when": { "down": "true" },
+      "apply": {
+        "model": "microtech:block/cable_t1_arm_vertical",
+        "x": 180
+      }
+    }
+  ]
+}
