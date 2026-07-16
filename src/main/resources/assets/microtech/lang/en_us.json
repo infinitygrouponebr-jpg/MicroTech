@@ -291,6 +291,7 @@
     "message.microtech.tech_miner.no_power":  "Tech Miner has no power.",
     "message.microtech.tech_miner.no_targets":  "No targets found.",
     "message.microtech.tech_miner.scan_complete":  "Scan complete.",
+    "message.microtech.tech_miner.wrong_side":  "Access the Tech Miner from its side panel.",
     "tooltip.microtech.tech_crusher.type":  "Energy crushing machine",
     "tooltip.microtech.tech_crusher.energy":  "Capacity: %s FE",
     "tooltip.microtech.tech_crusher.cost":  "Cost: %s FE/process",
