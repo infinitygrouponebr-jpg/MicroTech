@@ -11,4 +11,7 @@ public interface ControlledMobBehavior {
 
     default void tick(Mob mob, ServerPlayer controller) {
     }
+
+    default void onTargetSelected(Mob mob, LivingEntity target, ServerPlayer controller) {
+    }
 }

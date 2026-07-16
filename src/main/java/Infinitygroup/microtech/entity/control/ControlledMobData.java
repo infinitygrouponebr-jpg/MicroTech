@@ -21,6 +21,8 @@ public final class ControlledMobData {
     private static final String KEY_ORDER = "order";
     private static final String KEY_GUARD_POS = "guard_pos";
     private static final String KEY_GUARD_DIMENSION = "guard_dimension";
+    private static final String KEY_STAY_POS = "stay_pos";
+    private static final String KEY_STAY_DIMENSION = "stay_dimension";
     private static final String KEY_VERSION = "version";
     private static final String KEY_TELEPORT_COOLDOWN = "teleport_cooldown";
 
@@ -53,6 +55,20 @@ public final class ControlledMobData {
         getRoot(entity).putString(KEY_ORDER, order.getId());
     }
 
+    public static Optional<BlockPos> getStayPos(Entity entity) {
+        return readPos(entity, KEY_STAY_POS);
+    }
+
+    public static Optional<ResourceKey<Level>> getStayDimension(Entity entity) {
+        return readDimension(entity, KEY_STAY_DIMENSION);
+    }
+
+    public static void setStay(Entity entity, BlockPos pos, ResourceKey<Level> dimension) {
+        writePos(entity, KEY_STAY_POS, pos);
+        getRoot(entity).putString(KEY_STAY_DIMENSION, dimension.location().toString());
+        setOrder(entity, ControlledMobOrder.STAY);
+    }
+
     public static void install(Entity entity, UUID controllerId) {
         CompoundTag root = getRoot(entity);
         root.putBoolean(KEY_CONTROLLED, true);
@@ -69,23 +85,37 @@ public final class ControlledMobData {
     }
 
     public static Optional<BlockPos> getGuardPos(Entity entity) {
-        CompoundTag root = readRoot(entity);
-        if (root == null) {
-            return Optional.empty();
-        }
-        if (!root.contains(KEY_GUARD_POS, Tag.TAG_COMPOUND)) {
-            return Optional.empty();
-        }
-        CompoundTag pos = root.getCompound(KEY_GUARD_POS);
-        return Optional.of(new BlockPos(pos.getInt("x"), pos.getInt("y"), pos.getInt("z")));
+        return readPos(entity, KEY_GUARD_POS);
     }
 
     public static Optional<ResourceKey<Level>> getGuardDimension(Entity entity) {
+        return readDimension(entity, KEY_GUARD_DIMENSION);
+    }
+
+    public static void setGuard(Entity entity, BlockPos pos, ResourceKey<Level> dimension) {
+        writePos(entity, KEY_GUARD_POS, pos);
+        getRoot(entity).putString(KEY_GUARD_DIMENSION, dimension.location().toString());
+        getRoot(entity).putString(KEY_ORDER, ControlledMobOrder.GUARD.getId());
+    }
+
+    private static Optional<BlockPos> readPos(Entity entity, String key) {
         CompoundTag root = readRoot(entity);
         if (root == null) {
             return Optional.empty();
         }
-        String id = root.getString(KEY_GUARD_DIMENSION);
+        if (!root.contains(key, Tag.TAG_COMPOUND)) {
+            return Optional.empty();
+        }
+        CompoundTag pos = root.getCompound(key);
+        return Optional.of(new BlockPos(pos.getInt("x"), pos.getInt("y"), pos.getInt("z")));
+    }
+
+    private static Optional<ResourceKey<Level>> readDimension(Entity entity, String key) {
+        CompoundTag root = readRoot(entity);
+        if (root == null) {
+            return Optional.empty();
+        }
+        String id = root.getString(key);
         if (id.isBlank()) {
             return Optional.empty();
         }
@@ -96,15 +126,12 @@ public final class ControlledMobData {
         }
     }
 
-    public static void setGuard(Entity entity, BlockPos pos, ResourceKey<Level> dimension) {
-        CompoundTag root = getRoot(entity);
-        CompoundTag guardPos = new CompoundTag();
-        guardPos.putInt("x", pos.getX());
-        guardPos.putInt("y", pos.getY());
-        guardPos.putInt("z", pos.getZ());
-        root.put(KEY_GUARD_POS, guardPos);
-        root.putString(KEY_GUARD_DIMENSION, dimension.location().toString());
-        root.putString(KEY_ORDER, ControlledMobOrder.GUARD.getId());
+    private static void writePos(Entity entity, String key, BlockPos pos) {
+        CompoundTag posTag = new CompoundTag();
+        posTag.putInt("x", pos.getX());
+        posTag.putInt("y", pos.getY());
+        posTag.putInt("z", pos.getZ());
+        getRoot(entity).put(key, posTag);
     }
 
     public static int getTeleportCooldown(Entity entity) {

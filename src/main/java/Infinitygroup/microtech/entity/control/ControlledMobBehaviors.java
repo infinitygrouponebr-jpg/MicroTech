@@ -8,9 +8,6 @@ public final class ControlledMobBehaviors {
     }
 
     public static ControlledMobBehavior get(Mob mob) {
-        if (mob instanceof Creeper) {
-            return CreeperControlledBehavior.INSTANCE;
-        }
-        return DefaultControlledMobBehavior.INSTANCE;
+        return ControlledMobBehaviorRegistry.get(mob);
     }
 }

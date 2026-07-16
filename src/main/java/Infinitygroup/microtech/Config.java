@@ -9,7 +9,9 @@ import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -79,12 +81,57 @@ public class Config {
     public static final ModConfigSpec.BooleanValue CONTROLLER_CHIP_DROPS_ON_CONTROLLED_MOB_DEATH = BUILDER
             .comment("Drops one Controller Chip when a controlled mob dies.")
             .define("controllerChipDropsOnControlledMobDeath", true);
+    public static final ModConfigSpec.BooleanValue CONTROLLER_CHIP_DEBUG = BUILDER
+            .comment("Enables low-volume debug logs for Controller Chip decisions.")
+            .define("controllerChipDebug", false);
+    public static final ModConfigSpec.BooleanValue CONTROLLER_CHIP_ALLOW_CREEPER_EXPLOSION = BUILDER
+            .comment("Allows controlled creepers to use suicidal explosion behavior when safe. Default false.")
+            .define("controllerChipAllowCreeperExplosion", false);
+    public static final ModConfigSpec.BooleanValue CONTROLLER_CHIP_ALLOW_VILLAGERS = BUILDER
+            .comment("Allows installing Controller Chips in villagers. Default false to avoid profession, village and trade conflicts.")
+            .define("controllerChipAllowVillagers", false);
+    public static final ModConfigSpec.IntValue CONTROLLER_CHIP_THREAT_MEMORY_TICKS = BUILDER
+            .comment("Ticks before remembered controller threats expire.")
+            .defineInRange("controllerChipThreatMemoryTicks", 200, 20, 1200);
+    public static final ModConfigSpec.BooleanValue ENABLE_PASSIVE_MOB_BUFFS = BUILDER
+            .comment("Allows support-role controlled passive mobs to grant short buffs to their controller.")
+            .define("enablePassiveMobBuffs", true);
+    public static final ModConfigSpec.DoubleValue PASSIVE_BUFF_RADIUS = BUILDER
+            .comment("Maximum distance for support buffs.")
+            .defineInRange("passiveBuffRadius", 12.0D, 2.0D, 32.0D);
+    public static final ModConfigSpec.IntValue PASSIVE_BUFF_REFRESH_INTERVAL = BUILDER
+            .comment("Ticks between support buff refresh attempts.")
+            .defineInRange("passiveBuffRefreshInterval", 40, 10, 200);
+    public static final ModConfigSpec.BooleanValue ALLOW_BUFF_STACKING = BUILDER
+            .comment("Allows equal-strength support buffs to refresh aggressively.")
+            .define("allowBuffStacking", false);
+    public static final ModConfigSpec.IntValue MAX_SUPPORT_MOBS_AFFECTING_PLAYER = BUILDER
+            .comment("Reserved cap for support effects per player.")
+            .defineInRange("maxSupportMobsAffectingPlayer", 4, 1, 32);
+    public static final ModConfigSpec.BooleanValue CHICKEN_BUFF_ENABLED = BUILDER.define("chickenBuffEnabled", true);
+    public static final ModConfigSpec.BooleanValue PIG_BUFF_ENABLED = BUILDER.define("pigBuffEnabled", true);
+    public static final ModConfigSpec.BooleanValue COW_BUFF_ENABLED = BUILDER.define("cowBuffEnabled", true);
+    public static final ModConfigSpec.BooleanValue SHEEP_BUFF_ENABLED = BUILDER.define("sheepBuffEnabled", true);
+    public static final ModConfigSpec.BooleanValue RABBIT_BUFF_ENABLED = BUILDER.define("rabbitBuffEnabled", true);
+    public static final ModConfigSpec.BooleanValue MINI_SLIME_BUFF_ENABLED = BUILDER.define("miniSlimeBuffEnabled", true);
+    public static final ModConfigSpec.BooleanValue BEE_BUFF_ENABLED = BUILDER.define("beeBuffEnabled", true);
+    public static final ModConfigSpec.BooleanValue HORSE_BUFF_ENABLED = BUILDER.define("horseBuffEnabled", true);
+    public static final ModConfigSpec.BooleanValue TURTLE_BUFF_ENABLED = BUILDER.define("turtleBuffEnabled", true);
+    public static final ModConfigSpec.BooleanValue AXOLOTL_BUFF_ENABLED = BUILDER.define("axolotlBuffEnabled", true);
+    public static final ModConfigSpec.BooleanValue BAT_BUFF_ENABLED = BUILDER.define("batBuffEnabled", true);
+    public static final ModConfigSpec.BooleanValue FOX_BUFF_ENABLED = BUILDER.define("foxBuffEnabled", true);
     public static final ModConfigSpec.ConfigValue<List<? extends String>> CONTROLLER_CHIP_ENTITY_ALLOWLIST = BUILDER
             .comment("If non-empty, only these entity IDs can receive a Controller Chip.")
             .defineListAllowEmpty("controllerChipEntityAllowlist", List.of(), Config::validateEntityName);
     public static final ModConfigSpec.ConfigValue<List<? extends String>> CONTROLLER_CHIP_ENTITY_DENYLIST = BUILDER
             .comment("Entity IDs that can never receive a Controller Chip.")
             .defineListAllowEmpty("controllerChipEntityDenylist", List.of(), Config::validateEntityName);
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> CONTROLLER_CHIP_ROLE_DENYLIST = BUILDER
+            .comment("Entity IDs that keep control behavior but never receive combat/support actions.")
+            .defineListAllowEmpty("controllerChipRoleDenylist", List.of(), Config::validateEntityName);
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> CONTROLLER_CHIP_FORCED_ROLES = BUILDER
+            .comment("Forced roles in the form namespace:entity=ROLE. Valid roles: MELEE, RANGED, MAGIC, SUPPORT, HYBRID, NONE.")
+            .defineListAllowEmpty("controllerChipForcedRoles", List.of(), Config::validateForcedRole);
 
     static final ModConfigSpec SPEC = BUILDER.build();
 
@@ -109,8 +156,31 @@ public class Config {
     public static boolean controlledMobsHelpEachOther;
     public static boolean allowCrossDimensionTeleport;
     public static boolean controllerChipDropsOnControlledMobDeath;
+    public static boolean controllerChipDebug;
+    public static boolean controllerChipAllowCreeperExplosion;
+    public static boolean controllerChipAllowVillagers;
+    public static int controllerChipThreatMemoryTicks;
+    public static boolean enablePassiveMobBuffs;
+    public static double passiveBuffRadius;
+    public static int passiveBuffRefreshInterval;
+    public static boolean allowBuffStacking;
+    public static int maxSupportMobsAffectingPlayer;
+    public static boolean chickenBuffEnabled;
+    public static boolean pigBuffEnabled;
+    public static boolean cowBuffEnabled;
+    public static boolean sheepBuffEnabled;
+    public static boolean rabbitBuffEnabled;
+    public static boolean miniSlimeBuffEnabled;
+    public static boolean beeBuffEnabled;
+    public static boolean horseBuffEnabled;
+    public static boolean turtleBuffEnabled;
+    public static boolean axolotlBuffEnabled;
+    public static boolean batBuffEnabled;
+    public static boolean foxBuffEnabled;
     public static Set<ResourceLocation> controllerChipEntityAllowlist = Set.of();
     public static Set<ResourceLocation> controllerChipEntityDenylist = Set.of();
+    public static Set<ResourceLocation> controllerChipRoleDenylist = Set.of();
+    public static Map<ResourceLocation, Infinitygroup.microtech.entity.control.ControlledMobCombatRole> controllerChipForcedRoles = Map.of();
     public static Set<ResourceLocation> controllerChipBossDenylist = Set.of(
             ResourceLocation.fromNamespaceAndPath("minecraft", "wither"),
             ResourceLocation.fromNamespaceAndPath("minecraft", "ender_dragon"),
@@ -127,6 +197,23 @@ public class Config {
         }
         try {
             ResourceLocation id = ResourceLocation.parse(entityName);
+            return BuiltInRegistries.ENTITY_TYPE.containsKey(id);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static boolean validateForcedRole(final Object obj) {
+        if (!(obj instanceof String value)) {
+            return false;
+        }
+        String[] parts = value.split("=", 2);
+        if (parts.length != 2) {
+            return false;
+        }
+        try {
+            ResourceLocation id = ResourceLocation.parse(parts[0]);
+            Infinitygroup.microtech.entity.control.ControlledMobCombatRole.valueOf(parts[1].trim().toUpperCase(java.util.Locale.ROOT));
             return BuiltInRegistries.ENTITY_TYPE.containsKey(id);
         } catch (Exception ignored) {
             return false;
@@ -173,8 +260,31 @@ public class Config {
         controlledMobsHelpEachOther = CONTROLLED_MOBS_HELP_EACH_OTHER.get();
         allowCrossDimensionTeleport = ALLOW_CROSS_DIMENSION_TELEPORT.get();
         controllerChipDropsOnControlledMobDeath = CONTROLLER_CHIP_DROPS_ON_CONTROLLED_MOB_DEATH.get();
+        controllerChipDebug = CONTROLLER_CHIP_DEBUG.get();
+        controllerChipAllowCreeperExplosion = CONTROLLER_CHIP_ALLOW_CREEPER_EXPLOSION.get();
+        controllerChipAllowVillagers = CONTROLLER_CHIP_ALLOW_VILLAGERS.get();
+        controllerChipThreatMemoryTicks = CONTROLLER_CHIP_THREAT_MEMORY_TICKS.get();
+        enablePassiveMobBuffs = ENABLE_PASSIVE_MOB_BUFFS.get();
+        passiveBuffRadius = PASSIVE_BUFF_RADIUS.get();
+        passiveBuffRefreshInterval = PASSIVE_BUFF_REFRESH_INTERVAL.get();
+        allowBuffStacking = ALLOW_BUFF_STACKING.get();
+        maxSupportMobsAffectingPlayer = MAX_SUPPORT_MOBS_AFFECTING_PLAYER.get();
+        chickenBuffEnabled = CHICKEN_BUFF_ENABLED.get();
+        pigBuffEnabled = PIG_BUFF_ENABLED.get();
+        cowBuffEnabled = COW_BUFF_ENABLED.get();
+        sheepBuffEnabled = SHEEP_BUFF_ENABLED.get();
+        rabbitBuffEnabled = RABBIT_BUFF_ENABLED.get();
+        miniSlimeBuffEnabled = MINI_SLIME_BUFF_ENABLED.get();
+        beeBuffEnabled = BEE_BUFF_ENABLED.get();
+        horseBuffEnabled = HORSE_BUFF_ENABLED.get();
+        turtleBuffEnabled = TURTLE_BUFF_ENABLED.get();
+        axolotlBuffEnabled = AXOLOTL_BUFF_ENABLED.get();
+        batBuffEnabled = BAT_BUFF_ENABLED.get();
+        foxBuffEnabled = FOX_BUFF_ENABLED.get();
         controllerChipEntityAllowlist = parseEntitySet(CONTROLLER_CHIP_ENTITY_ALLOWLIST.get());
         controllerChipEntityDenylist = parseEntitySet(CONTROLLER_CHIP_ENTITY_DENYLIST.get());
+        controllerChipRoleDenylist = parseEntitySet(CONTROLLER_CHIP_ROLE_DENYLIST.get());
+        controllerChipForcedRoles = parseForcedRoles(CONTROLLER_CHIP_FORCED_ROLES.get());
     }
 
     private static Set<ResourceLocation> parseEntitySet(List<? extends String> values) {
@@ -182,6 +292,21 @@ public class Config {
         for (String value : values) {
             try {
                 parsed.add(ResourceLocation.parse(value));
+            } catch (Exception ignored) {
+            }
+        }
+        return parsed;
+    }
+
+    private static Map<ResourceLocation, Infinitygroup.microtech.entity.control.ControlledMobCombatRole> parseForcedRoles(List<? extends String> values) {
+        Map<ResourceLocation, Infinitygroup.microtech.entity.control.ControlledMobCombatRole> parsed = new HashMap<>();
+        for (String value : values) {
+            String[] parts = value.split("=", 2);
+            if (parts.length != 2) {
+                continue;
+            }
+            try {
+                parsed.put(ResourceLocation.parse(parts[0]), Infinitygroup.microtech.entity.control.ControlledMobCombatRole.valueOf(parts[1].trim().toUpperCase(java.util.Locale.ROOT)));
             } catch (Exception ignored) {
             }
         }

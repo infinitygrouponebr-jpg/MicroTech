@@ -19,13 +19,12 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.OwnableEntity;
-import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.goal.Goal;
-import net.minecraft.world.entity.animal.AbstractGolem;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -33,7 +32,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,7 +45,6 @@ public final class ControlledMobManager {
     private static final Map<UUID, Set<UUID>> CONTROLLED_BY_OWNER = new HashMap<>();
     private static final Map<UUID, RecentThreat> RECENT_ATTACKERS = new HashMap<>();
     private static final Map<UUID, RecentThreat> RECENT_OWNER_TARGETS = new HashMap<>();
-    private static final int TARGET_MEMORY_TICKS = 200;
     private static final int CONTROL_TICK_INTERVAL = 20;
     private static final double APPLY_DISTANCE_SQR = 64.0D;
 
@@ -63,6 +60,7 @@ public final class ControlledMobManager {
         ControlledMobData.install(mob, player.getUUID());
         addControlledIndex(player.getUUID(), mob.getUUID());
         installGoals(mob);
+        debug("Controlled mob installed: mob={} role={} controller={}", mob.getType().toShortString(), ControlledMobCombatManager.getRole(mob), player.getGameProfile().getName());
         mob.setTarget(null);
         mob.setLastHurtByMob(null);
         if (Config.consumeChipOnUse && !player.getAbilities().instabuild) {
@@ -119,12 +117,15 @@ public final class ControlledMobManager {
             return;
         }
         if (victim instanceof ServerPlayer player) {
-            RECENT_ATTACKERS.put(player.getUUID(), new RecentThreat(attacker.getUUID(), gameTime + TARGET_MEMORY_TICKS));
+            RECENT_ATTACKERS.put(player.getUUID(), new RecentThreat(attacker.getUUID(), gameTime + Config.controllerChipThreatMemoryTicks));
         }
         if (attacker instanceof ServerPlayer player) {
-            RECENT_OWNER_TARGETS.put(player.getUUID(), new RecentThreat(victim.getUUID(), gameTime + TARGET_MEMORY_TICKS));
+            RECENT_OWNER_TARGETS.put(player.getUUID(), new RecentThreat(victim.getUUID(), gameTime + Config.controllerChipThreatMemoryTicks));
         }
-        ControlledMobData.getController(victim).ifPresent(owner -> RECENT_ATTACKERS.put(owner, new RecentThreat(attacker.getUUID(), gameTime + TARGET_MEMORY_TICKS)));
+        ControlledMobData.getController(victim).ifPresent(owner -> {
+            RECENT_ATTACKERS.put(owner, new RecentThreat(attacker.getUUID(), gameTime + Config.controllerChipThreatMemoryTicks));
+            debug("Threat registered for {} from {}", owner, attacker.getType().toShortString());
+        });
     }
 
     public static boolean areAllies(LivingEntity first, LivingEntity second) {
@@ -133,6 +134,9 @@ public final class ControlledMobManager {
         }
         Optional<UUID> firstOwner = ownerOrController(first);
         Optional<UUID> secondOwner = ownerOrController(second);
+        if (first.isAlliedTo(second) || second.isAlliedTo(first)) {
+            return true;
+        }
         if (firstOwner.isEmpty() || secondOwner.isEmpty()) {
             return false;
         }
@@ -143,18 +147,24 @@ public final class ControlledMobManager {
         if (target == null || !target.isAlive() || target == controller || target.isSpectator()) {
             return false;
         }
+        if (target instanceof Player player && player.getAbilities().instabuild) {
+            return false;
+        }
         if (mob.distanceToSqr(target) > radius * radius) {
             return false;
         }
         if (areAllies(controller, target) || areAllies(mob, target)) {
             return false;
         }
-        return ControlledMobBehaviors.get(mob).canKeepTarget(mob, target, controller);
+        return ControlledMobBehaviorRegistry.get(mob).canKeepTarget(mob, target, controller);
     }
 
     public static boolean isConfiguredAllowed(Mob mob) {
         ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
         if (Config.controllerChipEntityDenylist.contains(id)) {
+            return false;
+        }
+        if (!Config.controllerChipAllowVillagers && mob instanceof Villager) {
             return false;
         }
         if (!Config.controllerChipEntityAllowlist.isEmpty() && !Config.controllerChipEntityAllowlist.contains(id)) {
@@ -239,12 +249,21 @@ public final class ControlledMobManager {
 
     private static LivingEntity findTarget(Mob mob, ServerPlayer controller) {
         double radius = Config.defendRadius;
+        ControlledMobCombatRole role = ControlledMobCombatManager.getRole(mob);
+        if (!ControlledMobCombatManager.canAttack(role)) {
+            return null;
+        }
+
         LivingEntity remembered = getRememberedTarget(mob, controller, radius);
         if (remembered != null) {
             return remembered;
         }
 
-        AABB area = mob.getBoundingBox().inflate(radius);
+        ControlledMobOrder order = ControlledMobData.getOrder(mob);
+        Vec3 center = order == ControlledMobOrder.GUARD
+                ? ControlledMobData.getGuardPos(mob).map(Vec3::atCenterOf).orElse(mob.position())
+                : mob.position();
+        AABB area = new AABB(center, center).inflate(radius);
         LivingEntity current = mob.getTarget();
         LivingEntity best = null;
         double bestDistance = Double.MAX_VALUE;
@@ -264,7 +283,7 @@ public final class ControlledMobManager {
                 bestDistance = -1.0D;
                 continue;
             }
-            if (candidate instanceof Enemy) {
+            if (order == ControlledMobOrder.GUARD && candidate instanceof Enemy) {
                 double distance = mob.distanceToSqr(candidate);
                 if (distance < bestDistance) {
                     best = candidate;
@@ -295,6 +314,14 @@ public final class ControlledMobManager {
         ControlledMobOrder order = ControlledMobData.getOrder(mob);
         if (order == ControlledMobOrder.FOLLOW) {
             moveNear(mob, controller.position(), Config.startFollowingDistance, Config.followDistance, controller);
+            return;
+        }
+        if (order == ControlledMobOrder.STAY) {
+            Optional<BlockPos> stayPos = ControlledMobData.getStayPos(mob);
+            Optional<ResourceKey<Level>> stayDimension = ControlledMobData.getStayDimension(mob);
+            if (stayPos.isPresent() && stayDimension.map(mob.level().dimension()::equals).orElse(false) && mob.getTarget() == null) {
+                moveNear(mob, Vec3.atCenterOf(stayPos.get()), 4.0D, 1.5D, controller);
+            }
             return;
         }
         if (order == ControlledMobOrder.GUARD) {
@@ -470,12 +497,12 @@ public final class ControlledMobManager {
 
         @Override
         public boolean canUse() {
-            return ControlledMobData.isControlled(this.mob);
+            return ControlledMobData.isControlled(this.mob) && shouldFollowGoalRun(this.mob);
         }
 
         @Override
         public boolean canContinueToUse() {
-            return this.canUse();
+            return ControlledMobData.isControlled(this.mob) && shouldFollowGoalRun(this.mob);
         }
 
         @Override
@@ -486,10 +513,20 @@ public final class ControlledMobManager {
                 this.mob.getNavigation().stop();
                 return;
             }
+            ControlledMobSupport.tick(this.mob, controller);
             this.mob.getLookControl().setLookAt(controller, 10.0F, this.mob.getMaxHeadXRot());
             tickMovement(this.mob, controller);
             tickControlledVisuals(this.mob);
         }
+    }
+
+    private static boolean shouldFollowGoalRun(Mob mob) {
+        ControlledMobCombatRole role = ControlledMobCombatManager.getRole(mob);
+        if (role == ControlledMobCombatRole.SUPPORT || role == ControlledMobCombatRole.NONE) {
+            return true;
+        }
+        LivingEntity target = mob.getTarget();
+        return target == null || !target.isAlive();
     }
 
     private static final class ControlledTargetGoal extends Goal {
@@ -518,7 +555,7 @@ public final class ControlledMobManager {
                 this.mob.setTarget(null);
                 return;
             }
-            ControlledMobBehaviors.get(this.mob).tick(this.mob, controller);
+            ControlledMobBehaviorRegistry.get(this.mob).tick(this.mob, controller);
             LivingEntity current = this.mob.getTarget();
             if (current != null && !isValidTarget(this.mob, current, controller, Config.defendRadius)) {
                 this.mob.setTarget(null);
@@ -530,7 +567,15 @@ public final class ControlledMobManager {
             LivingEntity target = findTarget(this.mob, controller);
             if (target != null && target != this.mob.getTarget()) {
                 this.mob.setTarget(target);
+                ControlledMobBehaviorRegistry.get(this.mob).onTargetSelected(this.mob, target, controller);
+                debug("Target selected: mob={} role={} target={}", this.mob.getType().toShortString(), ControlledMobCombatManager.getRole(this.mob), target.getType().toShortString());
             }
+        }
+    }
+
+    private static void debug(String message, Object... args) {
+        if (Config.controllerChipDebug) {
+            org.slf4j.LoggerFactory.getLogger(ControlledMobManager.class).info("[ControllerChip] " + message, args);
         }
     }
 

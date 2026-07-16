@@ -1,5 +1,6 @@
 package Infinitygroup.microtech.entity.control;
 
+import Infinitygroup.microtech.Config;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -13,7 +14,7 @@ public final class CreeperControlledBehavior implements ControlledMobBehavior {
 
     @Override
     public boolean canKeepTarget(Mob mob, LivingEntity target, ServerPlayer controller) {
-        return mob.distanceToSqr(controller) > 36.0D;
+        return Config.controllerChipAllowCreeperExplosion && mob.distanceToSqr(controller) > 36.0D;
     }
 
     @Override

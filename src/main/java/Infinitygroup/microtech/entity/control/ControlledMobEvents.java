@@ -89,7 +89,11 @@ public final class ControlledMobEvents {
         } else {
             ControlledMobOrder current = ControlledMobData.getOrder(mob);
             order = current == ControlledMobOrder.FOLLOW ? ControlledMobOrder.STAY : ControlledMobOrder.FOLLOW;
-            ControlledMobData.setOrder(mob, order);
+            if (order == ControlledMobOrder.STAY) {
+                ControlledMobData.setStay(mob, mob.blockPosition(), mob.level().dimension());
+            } else {
+                ControlledMobData.setOrder(mob, order);
+            }
         }
         player.displayClientMessage(ComponentHelper.order(order), true);
         event.setCanceled(true);
