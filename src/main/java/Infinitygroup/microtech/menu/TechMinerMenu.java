@@ -25,13 +25,7 @@ import net.neoforged.neoforge.items.SlotItemHandler;
 import java.util.function.IntSupplier;
 
 public class TechMinerMenu extends AbstractContainerMenu {
-    public static final int SLOT_SIZE = 18;
-    public static final int[] UPGRADE_SLOT_X = {28, 8, 48, 68};
-    public static final int UPGRADE_Y = 26;
-    public static final int UPGRADE_SLOT_COUNT = TechMinerBlockEntity.UPGRADE_SLOTS;
-    public static final int PLAYER_INV_X = 6;
-    public static final int PLAYER_INV_Y = 156;
-    public static final int HOTBAR_Y = 214;
+    public static final int UPGRADE_SLOT_COUNT = TechMinerGuiLayout.UPGRADE_SLOT_COUNT;
     private static final String MACHINE_ID = "microtech:tech_miner";
     private static final int BUTTON_SCAN = 0;
     private static final int BUTTON_START = 1;
@@ -83,7 +77,8 @@ public class TechMinerMenu extends AbstractContainerMenu {
         this.addMachineDataSlots();
 
         for (int slot = 0; slot < UPGRADE_SLOT_COUNT; slot++) {
-            this.addSlot(new SlotItemHandler(this.upgradeInventory, slot, UPGRADE_SLOT_X[slot], UPGRADE_Y));
+            TechMinerGuiLayout.Pos pos = TechMinerGuiLayout.UPGRADE_SLOTS[slot];
+            this.addSlot(new SlotItemHandler(this.upgradeInventory, slot, pos.x(), pos.y()));
         }
 
         this.addPlayerInventory(playerInventory);
@@ -230,14 +225,18 @@ public class TechMinerMenu extends AbstractContainerMenu {
     private void addPlayerInventory(Inventory playerInventory) {
         for (int row = 0; row < 3; ++row) {
             for (int column = 0; column < 9; ++column) {
-                this.addSlot(new Slot(playerInventory, column + row * 9 + 9, PLAYER_INV_X + column * SLOT_SIZE, PLAYER_INV_Y + row * SLOT_SIZE));
+                this.addSlot(new Slot(playerInventory, column + row * 9 + 9,
+                        TechMinerGuiLayout.PLAYER_INVENTORY.x() + column * TechMinerGuiLayout.SLOT_SIZE,
+                        TechMinerGuiLayout.PLAYER_INVENTORY.y() + row * TechMinerGuiLayout.SLOT_SIZE));
             }
         }
     }
 
     private void addHotbar(Inventory playerInventory) {
         for (int column = 0; column < 9; ++column) {
-            this.addSlot(new Slot(playerInventory, column, PLAYER_INV_X + column * SLOT_SIZE, HOTBAR_Y));
+            this.addSlot(new Slot(playerInventory, column,
+                    TechMinerGuiLayout.PLAYER_HOTBAR.x() + column * TechMinerGuiLayout.SLOT_SIZE,
+                    TechMinerGuiLayout.PLAYER_HOTBAR.y()));
         }
     }
 

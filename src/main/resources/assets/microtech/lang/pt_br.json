@@ -267,6 +267,7 @@
     "gui.microtech.tech_miner.filter_active_value":  "%s/%s",
     "gui.microtech.tech_miner.energy_empty":  "0 FE",
     "gui.microtech.tech_miner.energy_value":  "%s/%s FE",
+    "gui.microtech.tech_miner.energy_percent":  "%s%%",
     "gui.microtech.tech_miner.config":  "Config",
     "gui.microtech.tech_miner.inventory_button":  "Inventário",
     "gui.microtech.tech_miner.back":  "Voltar",
