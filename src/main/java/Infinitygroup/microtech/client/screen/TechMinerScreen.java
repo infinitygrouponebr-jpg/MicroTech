@@ -115,7 +115,7 @@ public class TechMinerScreen extends AbstractContainerScreen<TechMinerMenu> {
                     MicroTechTooltipHelper.formatFE(this.menu.getEnergyStored()),
                     MicroTechTooltipHelper.formatFE(this.menu.getMaxEnergy())));
         } else if (this.isMouseOverNextTarget(mouseX, mouseY)) {
-            this.hoverTooltipLines = List.of(nextTarget);
+            this.hoverTooltipLines = this.menu.getNextTargetTooltip();
         }
     }
 

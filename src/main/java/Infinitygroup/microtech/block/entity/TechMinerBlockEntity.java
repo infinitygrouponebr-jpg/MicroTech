@@ -708,21 +708,49 @@ public class TechMinerBlockEntity extends BlockEntity implements Container, Menu
     }
 
     public BlockPos getNextTargetPos() {
-        return this.targetPositions.isEmpty() ? null : this.targetPositions.getFirst();
+        NextTargetInfo nextTarget = this.getNextTargetInfo();
+        return nextTarget.hasTarget() ? nextTarget.pos() : null;
     }
 
     public Component getNextTargetDisplayName() {
-        BlockPos nextTarget = this.getNextTargetPos();
-        if (nextTarget == null || this.level == null) {
+        NextTargetInfo nextTarget = this.getNextTargetInfo();
+        if (!nextTarget.hasTarget()) {
             return Component.translatable("gui.microtech.tech_miner.no_targets");
         }
+        return TechMinerTargetHelper.getDisplayName(nextTarget.state());
+    }
 
-        BlockState state = this.level.getBlockState(nextTarget);
-        if (state.isAir()) {
-            return Component.translatable("gui.microtech.tech_miner.no_targets");
+    public NextTargetInfo getNextTargetInfo() {
+        if (this.level == null || this.targetPositions.isEmpty()) {
+            return NextTargetInfo.none();
         }
 
-        return TechMinerTargetHelper.getDisplayName(state);
+        BlockPos currentTarget = this.processingActive && this.processTicks > 0 ? this.targetPositions.getFirst() : null;
+        int startIndex = currentTarget == null ? 0 : 1;
+        for (int index = startIndex; index < this.targetPositions.size(); index++) {
+            BlockPos candidate = this.targetPositions.get(index);
+            if (currentTarget != null && candidate.equals(currentTarget)) {
+                continue;
+            }
+            if (!this.level.hasChunkAt(candidate)) {
+                continue;
+            }
+
+            BlockState state = this.level.getBlockState(candidate);
+            if (!TechMinerTargetHelper.isValidTarget(this.level, candidate, state) || !this.isAllowedByFilter(state)) {
+                continue;
+            }
+
+            return new NextTargetInfo(true, candidate, state);
+        }
+
+        return NextTargetInfo.none();
+    }
+
+    public record NextTargetInfo(boolean hasTarget, BlockPos pos, BlockState state) {
+        public static NextTargetInfo none() {
+            return new NextTargetInfo(false, BlockPos.ZERO, Blocks.AIR.defaultBlockState());
+        }
     }
 
     public void syncClient() {

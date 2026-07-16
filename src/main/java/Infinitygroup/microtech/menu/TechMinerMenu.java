@@ -7,6 +7,7 @@ import Infinitygroup.microtech.machine.MachineStatus;
 import Infinitygroup.microtech.machine.MachineUpgradeHelper;
 import Infinitygroup.microtech.machine.MachineUpgradeInventory;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -19,9 +20,12 @@ import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.SlotItemHandler;
 
+import java.util.List;
 import java.util.function.IntSupplier;
 
 public class TechMinerMenu extends AbstractContainerMenu {
@@ -37,6 +41,8 @@ public class TechMinerMenu extends AbstractContainerMenu {
     private static final int FLAG_MANUALLY_PAUSED = 1 << 2;
     private static final int FLAG_CAN_START_SCAN = 1 << 3;
     private static final int FLAG_CAN_START_MINING = 1 << 4;
+    private static final int NEXT_TARGET_NONE = 0;
+    private static final int NEXT_TARGET_PRESENT = 1;
 
     private final ContainerLevelAccess access;
     private final TechMinerBlockEntity blockEntity;
@@ -46,10 +52,15 @@ public class TechMinerMenu extends AbstractContainerMenu {
     private final SyncedInt processTicks = new SyncedInt();
     private final SyncedInt processDuration = new SyncedInt();
     private final SyncedInt targetCount = new SyncedInt();
+    private final SyncedInt nextTargetX = new SyncedInt();
+    private final SyncedInt nextTargetY = new SyncedInt();
+    private final SyncedInt nextTargetZ = new SyncedInt();
+    private final SyncedInt nextTargetBlockId = new SyncedInt();
     private int syncedFilterCapacity;
     private int syncedActiveFilterEntries;
     private int syncedStatusOrdinal = MachineStatus.IDLE.ordinal();
     private int syncedFlags;
+    private int syncedNextTargetMode;
     private int blockPosX;
     private int blockPosY;
     private int blockPosZ;
@@ -75,6 +86,7 @@ public class TechMinerMenu extends AbstractContainerMenu {
 
         this.addPositionDataSlots();
         this.addMachineDataSlots();
+        this.addNextTargetDataSlots();
 
         for (int slot = 0; slot < UPGRADE_SLOT_COUNT; slot++) {
             TechMinerGuiLayout.Pos pos = TechMinerGuiLayout.UPGRADE_SLOTS[slot];
@@ -171,6 +183,43 @@ public class TechMinerMenu extends AbstractContainerMenu {
                 TechMinerMenu.this.syncedFlags = value;
             }
         });
+    }
+
+    private void addNextTargetDataSlots() {
+        this.addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                if (TechMinerMenu.this.blockEntity == null) {
+                    return TechMinerMenu.this.syncedNextTargetMode;
+                }
+                return TechMinerMenu.this.blockEntity.getNextTargetInfo().hasTarget() ? NEXT_TARGET_PRESENT : NEXT_TARGET_NONE;
+            }
+
+            @Override
+            public void set(int value) {
+                TechMinerMenu.this.syncedNextTargetMode = value == NEXT_TARGET_PRESENT ? NEXT_TARGET_PRESENT : NEXT_TARGET_NONE;
+            }
+        });
+        this.addSyncedInt(() -> {
+            TechMinerBlockEntity.NextTargetInfo info = TechMinerMenu.this.getServerNextTargetInfo();
+            return info.hasTarget() ? info.pos().getX() : TechMinerMenu.this.nextTargetX.get();
+        }, this.nextTargetX);
+        this.addSyncedInt(() -> {
+            TechMinerBlockEntity.NextTargetInfo info = TechMinerMenu.this.getServerNextTargetInfo();
+            return info.hasTarget() ? info.pos().getY() : TechMinerMenu.this.nextTargetY.get();
+        }, this.nextTargetY);
+        this.addSyncedInt(() -> {
+            TechMinerBlockEntity.NextTargetInfo info = TechMinerMenu.this.getServerNextTargetInfo();
+            return info.hasTarget() ? info.pos().getZ() : TechMinerMenu.this.nextTargetZ.get();
+        }, this.nextTargetZ);
+        this.addSyncedInt(() -> {
+            TechMinerBlockEntity.NextTargetInfo info = TechMinerMenu.this.getServerNextTargetInfo();
+            return info.hasTarget() ? BuiltInRegistries.BLOCK.getId(info.state().getBlock()) : 0;
+        }, this.nextTargetBlockId);
+    }
+
+    private TechMinerBlockEntity.NextTargetInfo getServerNextTargetInfo() {
+        return this.blockEntity != null ? this.blockEntity.getNextTargetInfo() : TechMinerBlockEntity.NextTargetInfo.none();
     }
 
     private void addSyncedInt(IntSupplier getter, SyncedInt syncedInt) {
@@ -450,7 +499,54 @@ public class TechMinerMenu extends AbstractContainerMenu {
     }
 
     public Component getNextTargetText() {
-        return Component.translatable("gui.microtech.tech_miner.no_targets");
+        if (!this.hasNextTarget()) {
+            return Component.translatable("gui.microtech.tech_miner.next_target_none");
+        }
+
+        Block block = this.getNextTargetBlock();
+        if (block == Blocks.AIR) {
+            return Component.translatable("gui.microtech.tech_miner.next_target_none");
+        }
+        return block.getName();
+    }
+
+    public List<Component> getNextTargetTooltip() {
+        if (!this.hasNextTarget()) {
+            return List.of(Component.translatable("gui.microtech.tech_miner.next_target_none"));
+        }
+
+        Block block = this.getNextTargetBlock();
+        BlockPos pos = this.getNextTargetPos();
+        if (block == Blocks.AIR) {
+            return List.of(Component.translatable("gui.microtech.tech_miner.next_target_none"));
+        }
+        return List.of(
+                block.getName(),
+                Component.translatable("gui.microtech.tech_miner.next_target_coordinates", pos.getX(), pos.getY(), pos.getZ())
+        );
+    }
+
+    private boolean hasNextTarget() {
+        if (this.blockEntity != null) {
+            return this.blockEntity.getNextTargetInfo().hasTarget();
+        }
+        return this.syncedNextTargetMode == NEXT_TARGET_PRESENT;
+    }
+
+    private BlockPos getNextTargetPos() {
+        if (this.blockEntity != null) {
+            TechMinerBlockEntity.NextTargetInfo info = this.blockEntity.getNextTargetInfo();
+            return info.hasTarget() ? info.pos() : BlockPos.ZERO;
+        }
+        return new BlockPos(this.nextTargetX.get(), this.nextTargetY.get(), this.nextTargetZ.get());
+    }
+
+    private Block getNextTargetBlock() {
+        if (this.blockEntity != null) {
+            TechMinerBlockEntity.NextTargetInfo info = this.blockEntity.getNextTargetInfo();
+            return info.hasTarget() ? info.state().getBlock() : Blocks.AIR;
+        }
+        return BuiltInRegistries.BLOCK.byId(this.nextTargetBlockId.get());
     }
 
     public int getActiveFilterEntryCount(Level level) {
