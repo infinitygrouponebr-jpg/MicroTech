@@ -24,11 +24,18 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
+import net.minecraft.world.entity.monster.ElderGuardian;
+import net.minecraft.world.entity.monster.Ravager;
+import net.minecraft.world.entity.monster.WitherSkeleton;
+import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -43,6 +50,7 @@ import java.util.UUID;
 public final class ControlledMobManager {
     private static final Map<Mob, InstalledGoals> INSTALLED_GOALS = new java.util.WeakHashMap<>();
     private static final Map<UUID, Set<UUID>> CONTROLLED_BY_OWNER = new HashMap<>();
+    private static final Map<UUID, Set<UUID>> CONTROLLED_BOSSES_BY_OWNER = new HashMap<>();
     private static final Map<UUID, RecentThreat> RECENT_ATTACKERS = new HashMap<>();
     private static final Map<UUID, RecentThreat> RECENT_OWNER_TARGETS = new HashMap<>();
     private static final int CONTROL_TICK_INTERVAL = 20;
@@ -72,6 +80,32 @@ public final class ControlledMobManager {
         return ApplyResult.SUCCESS;
     }
 
+    public static ApplyResult tryInstallAdvanced(Mob mob, ServerPlayer player, ItemStack stack, InteractionHand hand) {
+        ApplyResult result = canInstallAdvanced(mob, player);
+        if (!result.success()) {
+            return result;
+        }
+
+        boolean boss = isBossLike(mob);
+        ControlledMobData.install(mob, player.getUUID(), ControlledMobTier.ADVANCED);
+        addControlledIndex(player.getUUID(), mob.getUUID());
+        if (boss) {
+            addControlledBossIndex(player.getUUID(), mob.getUUID());
+        }
+        installGoals(mob);
+        ControlledBossBehaviorRegistry.get(mob).onInstalled(mob, player);
+        mob.setTarget(null);
+        mob.setLastHurtByMob(null);
+        if (Config.consumeChipOnUse && !player.getAbilities().instabuild) {
+            stack.shrink(1);
+            player.setItemInHand(hand, stack);
+        }
+        playInstallFeedback(mob);
+        player.displayClientMessage(ComponentHelper.advancedInstalled(mob), true);
+        debug("Advanced controlled mob installed: mob={} boss={} role={} controller={}", mob.getType().toShortString(), boss, ControlledMobCombatManager.getRole(mob), player.getGameProfile().getName());
+        return ApplyResult.SUCCESS;
+    }
+
     public static boolean removeChip(Mob mob, ServerPlayer player) {
         if (!ControlledMobData.isControlled(mob)) {
             return false;
@@ -82,10 +116,13 @@ public final class ControlledMobManager {
         }
 
         ControlledMobData.getController(mob).ifPresent(owner -> removeControlledIndex(owner, mob.getUUID()));
+        ControlledMobData.getController(mob).ifPresent(owner -> removeControlledBossIndex(owner, mob.getUUID()));
+        ControlledBossBehaviorRegistry.get(mob).onRemoved(mob, player);
+        ControlledMobTier tier = ControlledMobData.getTier(mob);
         ControlledMobData.remove(mob);
         mob.setTarget(null);
         mob.getNavigation().stop();
-        giveOrDropChip(player);
+        giveOrDropChip(player, tier);
         playRemoveFeedback(mob);
         player.displayClientMessage(ComponentHelper.removed(mob), true);
         return true;
@@ -109,6 +146,7 @@ public final class ControlledMobManager {
 
     public static void onControlledMobRemoved(Mob mob) {
         ControlledMobData.getController(mob).ifPresent(owner -> removeControlledIndex(owner, mob.getUUID()));
+        ControlledMobData.getController(mob).ifPresent(owner -> removeControlledBossIndex(owner, mob.getUUID()));
         removeGoals(mob);
     }
 
@@ -220,6 +258,57 @@ public final class ControlledMobManager {
         }
         if (countControlled(player.getUUID()) >= Config.maxControlledMobsPerPlayer) {
             return ApplyResult.limit();
+        }
+        return ApplyResult.SUCCESS;
+    }
+
+    private static ApplyResult canInstallAdvanced(Mob mob, ServerPlayer player) {
+        if (!Config.advancedControllerChipEnabled) {
+            return ApplyResult.disabled();
+        }
+        if (!mob.isAlive() || mob.distanceToSqr(player) > APPLY_DISTANCE_SQR) {
+            return ApplyResult.invalid();
+        }
+        if (ControlledMobData.isControlled(mob) || hasExternalOwner(mob)) {
+            return ApplyResult.hasOwner();
+        }
+        boolean boss = isBossLike(mob);
+        if (!boss && !Config.advancedChipAllowNormalMobs) {
+            return ApplyResult.incompatible();
+        }
+        if (boss) {
+            ApplyResult bossResult = canInstallAdvancedBoss(mob, player);
+            if (!bossResult.success()) {
+                return bossResult;
+            }
+        } else if (!isConfiguredAllowed(mob)) {
+            return ApplyResult.incompatible();
+        }
+        return ApplyResult.SUCCESS;
+    }
+
+    private static ApplyResult canInstallAdvancedBoss(Mob mob, ServerPlayer player) {
+        if (!Config.advancedChipAllowBosses) {
+            return ApplyResult.bossDisabled();
+        }
+        ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
+        if (Config.advancedControllerBossDenylist.contains(id)) {
+            return ApplyResult.incompatible();
+        }
+        if (!Config.advancedControllerBossAllowlist.isEmpty() && !Config.advancedControllerBossAllowlist.contains(id)) {
+            return ApplyResult.incompatible();
+        }
+        if (!isVanillaBossAllowed(mob) && !Config.advancedChipAllowModdedBosses) {
+            return ApplyResult.incompatible();
+        }
+        if (countControlledBosses(player.getUUID()) >= Config.advancedChipMaxBossesPerPlayer) {
+            return ApplyResult.bossLimit();
+        }
+        if (!(Config.advancedChipCreativeBypassesHealthRequirement && player.getAbilities().instabuild)) {
+            float ratio = mob.getMaxHealth() <= 0.0F ? 1.0F : mob.getHealth() / mob.getMaxHealth();
+            if (ratio > Config.advancedChipBossHealthThreshold) {
+                return ApplyResult.bossHealth((int) Math.floor(Config.advancedChipBossHealthThreshold * 100.0D));
+            }
         }
         return ApplyResult.SUCCESS;
     }
@@ -405,6 +494,47 @@ public final class ControlledMobManager {
         return Config.controllerChipBossDenylist.contains(id) || mob.getType() == EntityType.WITHER || mob.getType() == EntityType.ENDER_DRAGON;
     }
 
+    public static boolean isBossLike(Mob mob) {
+        ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
+        return mob instanceof WitherBoss
+                || mob instanceof EnderDragon
+                || mob instanceof Warden
+                || mob instanceof ElderGuardian
+                || mob instanceof Ravager
+                || mob instanceof WitherSkeleton
+                || Config.advancedControllerBossAllowlist.contains(id);
+    }
+
+    public static boolean isAdvancedControlledBoss(Mob mob) {
+        return ControlledMobData.isControlled(mob) && ControlledMobData.getTier(mob) == ControlledMobTier.ADVANCED && isBossLike(mob);
+    }
+
+    public static Optional<Mob> getControlledBossSource(Entity source) {
+        if (source instanceof Mob mob && isAdvancedControlledBoss(mob)) {
+            return Optional.of(mob);
+        }
+        if (source instanceof Projectile projectile && projectile.getOwner() instanceof Mob owner && isAdvancedControlledBoss(owner)) {
+            return Optional.of(owner);
+        }
+        return Optional.empty();
+    }
+
+    private static boolean isVanillaBossAllowed(Mob mob) {
+        if (mob instanceof EnderDragon) {
+            return Config.advancedChipAllowEnderDragon;
+        }
+        if (mob instanceof WitherBoss) {
+            return Config.advancedChipAllowWither;
+        }
+        if (mob instanceof Warden) {
+            return Config.advancedChipAllowWarden;
+        }
+        if (mob instanceof ElderGuardian) {
+            return Config.advancedChipAllowElderGuardian;
+        }
+        return mob instanceof Ravager || mob instanceof WitherSkeleton;
+    }
+
     private static void playInstallFeedback(Mob mob) {
         if (!(mob.level() instanceof ServerLevel serverLevel)) {
             return;
@@ -421,8 +551,8 @@ public final class ControlledMobManager {
         serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, mob.getX(), mob.getY() + mob.getBbHeight() * 0.5D, mob.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.02D);
     }
 
-    private static void giveOrDropChip(ServerPlayer player) {
-        ItemStack chip = new ItemStack(Microtech.CONTROLLER_CHIP.get());
+    private static void giveOrDropChip(ServerPlayer player, ControlledMobTier tier) {
+        ItemStack chip = new ItemStack(tier == ControlledMobTier.ADVANCED ? Microtech.ADVANCED_CONTROLLER_CHIP.get() : Microtech.CONTROLLER_CHIP.get());
         if (!player.getInventory().add(chip)) {
             player.drop(chip, false);
         }
@@ -448,6 +578,26 @@ public final class ControlledMobManager {
         return mobs == null ? 0 : mobs.size();
     }
 
+    private static void addControlledBossIndex(UUID owner, UUID mob) {
+        CONTROLLED_BOSSES_BY_OWNER.computeIfAbsent(owner, ignored -> new HashSet<>()).add(mob);
+    }
+
+    private static void removeControlledBossIndex(UUID owner, UUID mob) {
+        Set<UUID> mobs = CONTROLLED_BOSSES_BY_OWNER.get(owner);
+        if (mobs == null) {
+            return;
+        }
+        mobs.remove(mob);
+        if (mobs.isEmpty()) {
+            CONTROLLED_BOSSES_BY_OWNER.remove(owner);
+        }
+    }
+
+    private static int countControlledBosses(UUID owner) {
+        Set<UUID> mobs = CONTROLLED_BOSSES_BY_OWNER.get(owner);
+        return mobs == null ? 0 : mobs.size();
+    }
+
     private static void removeGoals(Mob mob) {
         InstalledGoals goals = INSTALLED_GOALS.remove(mob);
         if (goals == null) {
@@ -463,7 +613,7 @@ public final class ControlledMobManager {
     private record InstalledGoals(Goal followGoal, Goal targetGoal) {
     }
 
-    public record ApplyResult(boolean success, String messageKey) {
+    public record ApplyResult(boolean success, String messageKey, Object... args) {
         public static final ApplyResult SUCCESS = new ApplyResult(true, "");
 
         private static ApplyResult disabled() {
@@ -484,6 +634,18 @@ public final class ControlledMobManager {
 
         private static ApplyResult limit() {
             return new ApplyResult(false, "message.microtech.controller_chip.limit");
+        }
+
+        private static ApplyResult bossDisabled() {
+            return new ApplyResult(false, "message.microtech.advanced_controller_chip.boss_disabled");
+        }
+
+        private static ApplyResult bossLimit() {
+            return new ApplyResult(false, "message.microtech.advanced_controller_chip.boss_limit");
+        }
+
+        private static ApplyResult bossHealth(int percent) {
+            return new ApplyResult(false, "message.microtech.advanced_controller_chip.boss_health", percent);
         }
     }
 
@@ -556,6 +718,9 @@ public final class ControlledMobManager {
                 return;
             }
             ControlledMobBehaviorRegistry.get(this.mob).tick(this.mob, controller);
+            if (ControlledMobData.getTier(this.mob) == ControlledMobTier.ADVANCED && isBossLike(this.mob)) {
+                ControlledBossBehaviorRegistry.get(this.mob).tick(this.mob, controller);
+            }
             LivingEntity current = this.mob.getTarget();
             if (current != null && !isValidTarget(this.mob, current, controller, Config.defendRadius)) {
                 this.mob.setTarget(null);
@@ -568,6 +733,9 @@ public final class ControlledMobManager {
             if (target != null && target != this.mob.getTarget()) {
                 this.mob.setTarget(target);
                 ControlledMobBehaviorRegistry.get(this.mob).onTargetSelected(this.mob, target, controller);
+                if (ControlledMobData.getTier(this.mob) == ControlledMobTier.ADVANCED && isBossLike(this.mob)) {
+                    ControlledBossBehaviorRegistry.get(this.mob).onTargetSelected(this.mob, target, controller);
+                }
                 debug("Target selected: mob={} role={} target={}", this.mob.getType().toShortString(), ControlledMobCombatManager.getRole(this.mob), target.getType().toShortString());
             }
         }

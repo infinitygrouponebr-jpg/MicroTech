@@ -35,6 +35,7 @@ import Infinitygroup.microtech.item.TechSwordItem;
 import Infinitygroup.microtech.item.TechSwordData;
 import Infinitygroup.microtech.item.EnergyDebugToolItem;
 import Infinitygroup.microtech.item.ControllerChipItem;
+import Infinitygroup.microtech.item.AdvancedControllerChipItem;
 import Infinitygroup.microtech.item.TechMinerBlockItem;
 import Infinitygroup.microtech.item.TechCrusherBlockItem;
 import Infinitygroup.microtech.item.TechTableBlockItem;
@@ -275,6 +276,8 @@ public class Microtech {
             () -> new TechChipItem(TechChipType.OVERLOAD, new net.minecraft.world.item.Item.Properties().stacksTo(64).rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
     public static final DeferredItem<ControllerChipItem> CONTROLLER_CHIP = ITEMS.register("controller_chip",
             () -> new ControllerChipItem(new net.minecraft.world.item.Item.Properties().stacksTo(64).rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
+    public static final DeferredItem<AdvancedControllerChipItem> ADVANCED_CONTROLLER_CHIP = ITEMS.register("advanced_controller_chip",
+            () -> new AdvancedControllerChipItem(new net.minecraft.world.item.Item.Properties().stacksTo(64).rarity(net.minecraft.world.item.Rarity.RARE)));
     public static final DeferredItem<TechFlightChipItem> TECH_FLIGHT_CHIP = ITEMS.register("tech_flight_chip",
             () -> new TechFlightChipItem(new net.minecraft.world.item.Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.RARE)));
     public static final DeferredItem<GraviteItem> GRAVITE = ITEMS.register("gravite",
@@ -295,6 +298,7 @@ public class Microtech {
                         output.accept(SHOCK_DISCHARGE_CHIP.get());
                         output.accept(OVERLOAD_CHIP.get());
                         output.accept(CONTROLLER_CHIP.get());
+                        output.accept(ADVANCED_CONTROLLER_CHIP.get());
                         output.accept(TECH_FLIGHT_CHIP.get());
                         output.accept(GRAVITE.get());
                         output.accept(ENERGY_DEBUG_TOOL.get());
@@ -363,6 +367,10 @@ public class Microtech {
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onLivingDamagePost);
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onEntityInteract);
+        NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onProjectileImpact);
+        NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onExplosionDetonate);
+        NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onEntityMobGriefing);
+        NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onMobEffectApplicable);
     }
 
     private static DeferredItem<MachineUpgradeItem> registerUpgradeItem(String name, MachineUpgradeType upgradeType) {

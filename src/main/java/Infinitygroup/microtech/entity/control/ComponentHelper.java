@@ -11,6 +11,10 @@ public final class ComponentHelper {
         return Component.translatable("message.microtech.controller_chip.installed", mob.getDisplayName());
     }
 
+    public static Component advancedInstalled(Mob mob) {
+        return Component.translatable("message.microtech.advanced_controller_chip.installed", mob.getDisplayName());
+    }
+
     public static Component removed(Mob mob) {
         return Component.translatable("message.microtech.controller_chip.removed", mob.getDisplayName());
     }

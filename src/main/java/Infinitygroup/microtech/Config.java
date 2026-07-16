@@ -132,6 +132,36 @@ public class Config {
     public static final ModConfigSpec.ConfigValue<List<? extends String>> CONTROLLER_CHIP_FORCED_ROLES = BUILDER
             .comment("Forced roles in the form namespace:entity=ROLE. Valid roles: MELEE, RANGED, MAGIC, SUPPORT, HYBRID, NONE.")
             .defineListAllowEmpty("controllerChipForcedRoles", List.of(), Config::validateForcedRole);
+    public static final ModConfigSpec.BooleanValue ADVANCED_CONTROLLER_CHIP_ENABLED = BUILDER.define("advancedControllerChipEnabled", true);
+    public static final ModConfigSpec.BooleanValue ADVANCED_CHIP_ALLOW_BOSSES = BUILDER.define("advancedChipAllowBosses", true);
+    public static final ModConfigSpec.DoubleValue ADVANCED_CHIP_BOSS_HEALTH_THRESHOLD = BUILDER.defineInRange("advancedChipBossHealthThreshold", 0.25D, 0.01D, 1.0D);
+    public static final ModConfigSpec.BooleanValue ADVANCED_CHIP_CREATIVE_BYPASSES_HEALTH_REQUIREMENT = BUILDER.define("advancedChipCreativeBypassesHealthRequirement", true);
+    public static final ModConfigSpec.IntValue ADVANCED_CHIP_MAX_BOSSES_PER_PLAYER = BUILDER.defineInRange("advancedChipMaxBossesPerPlayer", 1, 0, 16);
+    public static final ModConfigSpec.BooleanValue ADVANCED_CHIP_ALLOW_NORMAL_MOBS = BUILDER.define("advancedChipAllowNormalMobs", true);
+    public static final ModConfigSpec.BooleanValue ADVANCED_CHIP_ALLOW_MODDED_BOSSES = BUILDER.define("advancedChipAllowModdedBosses", true);
+    public static final ModConfigSpec.BooleanValue ADVANCED_CHIP_ALLOW_ENDER_DRAGON = BUILDER.define("advancedChipAllowEnderDragon", true);
+    public static final ModConfigSpec.BooleanValue ADVANCED_CHIP_ALLOW_WITHER = BUILDER.define("advancedChipAllowWither", true);
+    public static final ModConfigSpec.BooleanValue ADVANCED_CHIP_ALLOW_WARDEN = BUILDER.define("advancedChipAllowWarden", true);
+    public static final ModConfigSpec.BooleanValue ADVANCED_CHIP_ALLOW_ELDER_GUARDIAN = BUILDER.define("advancedChipAllowElderGuardian", true);
+    public static final ModConfigSpec.BooleanValue CONTROLLED_WITHER_BLOCK_GRIEFING = BUILDER.define("controlledWitherBlockGriefing", false);
+    public static final ModConfigSpec.BooleanValue CONTROLLED_WITHER_DAMAGES_ALLIES = BUILDER.define("controlledWitherDamagesAllies", false);
+    public static final ModConfigSpec.BooleanValue CONTROLLED_DRAGON_BLOCK_GRIEFING = BUILDER.define("controlledDragonBlockGriefing", false);
+    public static final ModConfigSpec.BooleanValue CONTROLLED_DRAGON_DAMAGES_ALLIES = BUILDER.define("controlledDragonDamagesAllies", false);
+    public static final ModConfigSpec.DoubleValue CONTROLLED_DRAGON_FOLLOW_DISTANCE = BUILDER.defineInRange("controlledDragonFollowDistance", 24.0D, 8.0D, 128.0D);
+    public static final ModConfigSpec.DoubleValue CONTROLLED_DRAGON_ATTACK_RADIUS = BUILDER.defineInRange("controlledDragonAttackRadius", 64.0D, 16.0D, 256.0D);
+    public static final ModConfigSpec.BooleanValue CONTROLLED_BOSS_CROSS_DIMENSION_TELEPORT = BUILDER.define("controlledBossCrossDimensionTeleport", false);
+    public static final ModConfigSpec.BooleanValue CONTROLLED_BOSS_FRIENDLY_FIRE = BUILDER.define("controlledBossFriendlyFire", false);
+    public static final ModConfigSpec.BooleanValue CONTROLLED_BOSS_BLOCK_GRIEFING = BUILDER.define("controlledBossBlockGriefing", false);
+    public static final ModConfigSpec.BooleanValue CONTROLLED_BOSS_PROTECT_OWNER_PETS = BUILDER.define("controlledBossProtectOwnerPets", true);
+    public static final ModConfigSpec.BooleanValue CONTROLLED_BOSS_PROTECT_TEAM_MEMBERS = BUILDER.define("controlledBossProtectTeamMembers", true);
+    public static final ModConfigSpec.BooleanValue ADVANCED_CHIP_DROPS_ON_BOSS_DEATH = BUILDER.define("advancedChipDropsOnBossDeath", false);
+    public static final ModConfigSpec.BooleanValue CONTROLLED_BOSS_KEEPS_NORMAL_LOOT_ON_DEATH = BUILDER.define("controlledBossKeepsNormalLootOnDeath", true);
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> ADVANCED_CONTROLLER_BOSS_ALLOWLIST = BUILDER
+            .comment("Full entity IDs that are treated as advanced-controller bosses.")
+            .defineListAllowEmpty("advancedControllerBossAllowlist", List.of(), Config::validateEntityName);
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> ADVANCED_CONTROLLER_BOSS_DENYLIST = BUILDER
+            .comment("Full entity IDs that advanced controller chips can never control.")
+            .defineListAllowEmpty("advancedControllerBossDenylist", List.of(), Config::validateEntityName);
 
     static final ModConfigSpec SPEC = BUILDER.build();
 
@@ -181,6 +211,32 @@ public class Config {
     public static Set<ResourceLocation> controllerChipEntityDenylist = Set.of();
     public static Set<ResourceLocation> controllerChipRoleDenylist = Set.of();
     public static Map<ResourceLocation, Infinitygroup.microtech.entity.control.ControlledMobCombatRole> controllerChipForcedRoles = Map.of();
+    public static boolean advancedControllerChipEnabled;
+    public static boolean advancedChipAllowBosses;
+    public static double advancedChipBossHealthThreshold;
+    public static boolean advancedChipCreativeBypassesHealthRequirement;
+    public static int advancedChipMaxBossesPerPlayer;
+    public static boolean advancedChipAllowNormalMobs;
+    public static boolean advancedChipAllowModdedBosses;
+    public static boolean advancedChipAllowEnderDragon;
+    public static boolean advancedChipAllowWither;
+    public static boolean advancedChipAllowWarden;
+    public static boolean advancedChipAllowElderGuardian;
+    public static boolean controlledWitherBlockGriefing;
+    public static boolean controlledWitherDamagesAllies;
+    public static boolean controlledDragonBlockGriefing;
+    public static boolean controlledDragonDamagesAllies;
+    public static double controlledDragonFollowDistance;
+    public static double controlledDragonAttackRadius;
+    public static boolean controlledBossCrossDimensionTeleport;
+    public static boolean controlledBossFriendlyFire;
+    public static boolean controlledBossBlockGriefing;
+    public static boolean controlledBossProtectOwnerPets;
+    public static boolean controlledBossProtectTeamMembers;
+    public static boolean advancedChipDropsOnBossDeath;
+    public static boolean controlledBossKeepsNormalLootOnDeath;
+    public static Set<ResourceLocation> advancedControllerBossAllowlist = Set.of();
+    public static Set<ResourceLocation> advancedControllerBossDenylist = Set.of();
     public static Set<ResourceLocation> controllerChipBossDenylist = Set.of(
             ResourceLocation.fromNamespaceAndPath("minecraft", "wither"),
             ResourceLocation.fromNamespaceAndPath("minecraft", "ender_dragon"),
@@ -285,6 +341,32 @@ public class Config {
         controllerChipEntityDenylist = parseEntitySet(CONTROLLER_CHIP_ENTITY_DENYLIST.get());
         controllerChipRoleDenylist = parseEntitySet(CONTROLLER_CHIP_ROLE_DENYLIST.get());
         controllerChipForcedRoles = parseForcedRoles(CONTROLLER_CHIP_FORCED_ROLES.get());
+        advancedControllerChipEnabled = ADVANCED_CONTROLLER_CHIP_ENABLED.get();
+        advancedChipAllowBosses = ADVANCED_CHIP_ALLOW_BOSSES.get();
+        advancedChipBossHealthThreshold = ADVANCED_CHIP_BOSS_HEALTH_THRESHOLD.get();
+        advancedChipCreativeBypassesHealthRequirement = ADVANCED_CHIP_CREATIVE_BYPASSES_HEALTH_REQUIREMENT.get();
+        advancedChipMaxBossesPerPlayer = ADVANCED_CHIP_MAX_BOSSES_PER_PLAYER.get();
+        advancedChipAllowNormalMobs = ADVANCED_CHIP_ALLOW_NORMAL_MOBS.get();
+        advancedChipAllowModdedBosses = ADVANCED_CHIP_ALLOW_MODDED_BOSSES.get();
+        advancedChipAllowEnderDragon = ADVANCED_CHIP_ALLOW_ENDER_DRAGON.get();
+        advancedChipAllowWither = ADVANCED_CHIP_ALLOW_WITHER.get();
+        advancedChipAllowWarden = ADVANCED_CHIP_ALLOW_WARDEN.get();
+        advancedChipAllowElderGuardian = ADVANCED_CHIP_ALLOW_ELDER_GUARDIAN.get();
+        controlledWitherBlockGriefing = CONTROLLED_WITHER_BLOCK_GRIEFING.get();
+        controlledWitherDamagesAllies = CONTROLLED_WITHER_DAMAGES_ALLIES.get();
+        controlledDragonBlockGriefing = CONTROLLED_DRAGON_BLOCK_GRIEFING.get();
+        controlledDragonDamagesAllies = CONTROLLED_DRAGON_DAMAGES_ALLIES.get();
+        controlledDragonFollowDistance = CONTROLLED_DRAGON_FOLLOW_DISTANCE.get();
+        controlledDragonAttackRadius = CONTROLLED_DRAGON_ATTACK_RADIUS.get();
+        controlledBossCrossDimensionTeleport = CONTROLLED_BOSS_CROSS_DIMENSION_TELEPORT.get();
+        controlledBossFriendlyFire = CONTROLLED_BOSS_FRIENDLY_FIRE.get();
+        controlledBossBlockGriefing = CONTROLLED_BOSS_BLOCK_GRIEFING.get();
+        controlledBossProtectOwnerPets = CONTROLLED_BOSS_PROTECT_OWNER_PETS.get();
+        controlledBossProtectTeamMembers = CONTROLLED_BOSS_PROTECT_TEAM_MEMBERS.get();
+        advancedChipDropsOnBossDeath = ADVANCED_CHIP_DROPS_ON_BOSS_DEATH.get();
+        controlledBossKeepsNormalLootOnDeath = CONTROLLED_BOSS_KEEPS_NORMAL_LOOT_ON_DEATH.get();
+        advancedControllerBossAllowlist = parseEntitySet(ADVANCED_CONTROLLER_BOSS_ALLOWLIST.get());
+        advancedControllerBossDenylist = parseEntitySet(ADVANCED_CONTROLLER_BOSS_DENYLIST.get());
     }
 
     private static Set<ResourceLocation> parseEntitySet(List<? extends String> values) {

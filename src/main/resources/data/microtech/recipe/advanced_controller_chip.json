@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "NDN",
+    "ECE",
+    "NGN"
+  ],
+  "key": {
+    "N": {
+      "item": "microtech:netherite_dust"
+    },
+    "D": {
+      "item": "microtech:diamond_dust"
+    },
+    "E": {
+      "item": "microtech:emerald_dust"
+    },
+    "C": {
+      "item": "microtech:controller_chip"
+    },
+    "G": {
+      "item": "microtech:gold_plate"
+    }
+  },
+  "result": {
+    "id": "microtech:advanced_controller_chip",
+    "count": 1
+  }
+}

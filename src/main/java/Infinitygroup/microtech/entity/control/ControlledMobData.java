@@ -25,6 +25,7 @@ public final class ControlledMobData {
     private static final String KEY_STAY_DIMENSION = "stay_dimension";
     private static final String KEY_VERSION = "version";
     private static final String KEY_TELEPORT_COOLDOWN = "teleport_cooldown";
+    private static final String KEY_CONTROLLER_TIER = "controllerTier";
 
     private ControlledMobData() {
     }
@@ -69,13 +70,23 @@ public final class ControlledMobData {
         setOrder(entity, ControlledMobOrder.STAY);
     }
 
+    public static ControlledMobTier getTier(Entity entity) {
+        CompoundTag root = readRoot(entity);
+        return root == null ? ControlledMobTier.BASIC : ControlledMobTier.byId(root.getString(KEY_CONTROLLER_TIER));
+    }
+
     public static void install(Entity entity, UUID controllerId) {
+        install(entity, controllerId, ControlledMobTier.BASIC);
+    }
+
+    public static void install(Entity entity, UUID controllerId, ControlledMobTier tier) {
         CompoundTag root = getRoot(entity);
         root.putBoolean(KEY_CONTROLLED, true);
         root.putUUID(KEY_CONTROLLER, controllerId);
         root.putString(KEY_ORDER, ControlledMobOrder.FOLLOW.getId());
         root.putInt(KEY_VERSION, DATA_VERSION);
         root.putInt(KEY_TELEPORT_COOLDOWN, 0);
+        root.putString(KEY_CONTROLLER_TIER, tier.name());
         root.remove(KEY_GUARD_POS);
         root.remove(KEY_GUARD_DIMENSION);
     }
