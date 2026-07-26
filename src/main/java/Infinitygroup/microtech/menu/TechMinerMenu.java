@@ -47,6 +47,7 @@ public class TechMinerMenu extends AbstractContainerMenu {
     private final ContainerLevelAccess access;
     private final TechMinerBlockEntity blockEntity;
     private final MachineUpgradeInventory upgradeInventory;
+    private final TechMinerGuiLayout.Layout layout;
     private final SyncedInt energyStored = new SyncedInt();
     private final SyncedInt maxEnergy = new SyncedInt();
     private final SyncedInt processTicks = new SyncedInt();
@@ -73,6 +74,7 @@ public class TechMinerMenu extends AbstractContainerMenu {
         super(Microtech.TECH_MINER_MENU.get(), containerId);
         this.blockEntity = blockEntity;
         this.access = access;
+        this.layout = TechMinerGuiLayout.resolveInitialLayout();
         this.upgradeInventory = this.blockEntity != null
                 ? this.blockEntity.getUpgradeInventory()
                 : new MachineUpgradeInventory(MACHINE_ID, UPGRADE_SLOT_COUNT, () -> false);
@@ -89,7 +91,7 @@ public class TechMinerMenu extends AbstractContainerMenu {
         this.addNextTargetDataSlots();
 
         for (int slot = 0; slot < UPGRADE_SLOT_COUNT; slot++) {
-            TechMinerGuiLayout.Pos pos = TechMinerGuiLayout.UPGRADE_SLOTS[slot];
+            TechMinerGuiLayout.Pos pos = this.layout.upgradeSlots()[slot];
             this.addSlot(new SlotItemHandler(this.upgradeInventory, slot, pos.x(), pos.y()));
         }
 
@@ -275,8 +277,8 @@ public class TechMinerMenu extends AbstractContainerMenu {
         for (int row = 0; row < 3; ++row) {
             for (int column = 0; column < 9; ++column) {
                 this.addSlot(new Slot(playerInventory, column + row * 9 + 9,
-                        TechMinerGuiLayout.PLAYER_INVENTORY.x() + column * TechMinerGuiLayout.SLOT_SIZE,
-                        TechMinerGuiLayout.PLAYER_INVENTORY.y() + row * TechMinerGuiLayout.SLOT_SIZE));
+                        this.layout.playerInventory().x() + column * TechMinerGuiLayout.SLOT_SIZE,
+                        this.layout.playerInventory().y() + row * TechMinerGuiLayout.SLOT_SIZE));
             }
         }
     }
@@ -284,9 +286,13 @@ public class TechMinerMenu extends AbstractContainerMenu {
     private void addHotbar(Inventory playerInventory) {
         for (int column = 0; column < 9; ++column) {
             this.addSlot(new Slot(playerInventory, column,
-                    TechMinerGuiLayout.PLAYER_HOTBAR.x() + column * TechMinerGuiLayout.SLOT_SIZE,
-                    TechMinerGuiLayout.PLAYER_HOTBAR.y()));
+                    this.layout.playerHotbar().x() + column * TechMinerGuiLayout.SLOT_SIZE,
+                    this.layout.playerHotbar().y()));
         }
+    }
+
+    public TechMinerGuiLayout.Layout getLayout() {
+        return this.layout;
     }
 
     @Override

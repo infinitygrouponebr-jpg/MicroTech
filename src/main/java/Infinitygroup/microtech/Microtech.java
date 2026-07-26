@@ -40,6 +40,7 @@ import Infinitygroup.microtech.item.TechMinerBlockItem;
 import Infinitygroup.microtech.item.TechCrusherBlockItem;
 import Infinitygroup.microtech.item.TechTableBlockItem;
 import Infinitygroup.microtech.entity.control.ControlledMobEvents;
+import Infinitygroup.microtech.entity.control.ControlledMobDebugCommand;
 import Infinitygroup.microtech.machine.MachineUpgradeItem;
 import Infinitygroup.microtech.machine.MachineUpgradeType;
 import Infinitygroup.microtech.network.TechMinerFilterPayload;
@@ -365,12 +366,14 @@ public class Microtech {
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onEntityLeaveLevel);
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onLivingDamagePre);
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onLivingDamagePost);
+        NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onLivingChangeTarget);
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onEntityInteract);
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onProjectileImpact);
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onExplosionDetonate);
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onEntityMobGriefing);
         NeoForge.EVENT_BUS.addListener(ControlledMobEvents::onMobEffectApplicable);
+        NeoForge.EVENT_BUS.addListener(ControlledMobDebugCommand::onRegisterCommands);
     }
 
     private static DeferredItem<MachineUpgradeItem> registerUpgradeItem(String name, MachineUpgradeType upgradeType) {

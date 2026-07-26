@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "RLR",
+    "PCP",
+    "RGR"
+  ],
+  "key": {
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "L": {
+      "item": "microtech:lapis_dust"
+    },
+    "P": {
+      "item": "microtech:copper_plate"
+    },
+    "C": {
+      "item": "minecraft:ender_pearl"
+    },
+    "G": {
+      "item": "microtech:gold_plate"
+    }
+  },
+  "result": {
+    "id": "microtech:controller_chip",
+    "count": 1
+  }
+}

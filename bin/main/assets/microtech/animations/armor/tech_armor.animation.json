@@ -1,0 +1,59 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.tech_armor.wings_open": {
+      "loop": false,
+      "animation_length": 1.25,
+      "bones": {
+        "lado1": {
+          "rotation": {
+            "0.0": { "vector": [0, 0, 0] },
+            "1.25": { "vector": [0, 0, 87.5] }
+          }
+        },
+        "lado2": {
+          "rotation": {
+            "0.0": { "vector": [0, 0, 0] },
+            "1.25": { "vector": [0, 0, -87.5] }
+          }
+        }
+      }
+    },
+    "fly_on": {
+      "loop": true,
+      "animation_length": 1.25,
+      "bones": {
+        "lado1": {
+          "rotation": {
+            "0.0": { "vector": [0, 0, 87.5] },
+            "1.25": { "vector": [0, 0, 87.5] }
+          }
+        },
+        "lado2": {
+          "rotation": {
+            "0.0": { "vector": [0, 0, -87.5] },
+            "1.25": { "vector": [0, 0, -87.5] }
+          }
+        }
+      }
+    },
+    "animation.tech_armor.wings_close": {
+      "loop": false,
+      "animation_length": 1.25,
+      "bones": {
+        "lado1": {
+          "rotation": {
+            "0.0": { "vector": [0, 0, 87.5] },
+            "1.25": { "vector": [0, 0, 0] }
+          }
+        },
+        "lado2": {
+          "rotation": {
+            "0.0": { "vector": [0, 0, -87.5] },
+            "1.25": { "vector": [0, 0, 0] }
+          }
+        }
+      }
+    }
+  }
+}

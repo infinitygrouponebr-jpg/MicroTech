@@ -1,0 +1,21 @@
+{
+  "ambientocclusion": true,
+  "textures": {
+    "all": "microtech:block/cable_t1",
+    "particle": "microtech:block/cable_t1"
+  },
+  "elements": [
+    {
+      "from": [7, 10, 7],
+      "to": [9, 16, 9],
+      "faces": {
+        "north": { "texture": "#all" },
+        "east": { "texture": "#all" },
+        "south": { "texture": "#all" },
+        "west": { "texture": "#all" },
+        "up": { "texture": "#all" },
+        "down": { "texture": "#all" }
+      }
+    }
+  ]
+}

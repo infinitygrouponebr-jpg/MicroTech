@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "RDR",
+    "BTB",
+    "RCR"
+  ],
+  "key": {
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "B": {
+      "item": "microtech:battery_t1"
+    },
+    "T": {
+      "item": "minecraft:copper_ingot"
+    },
+    "C": {
+      "item": "microtech:cable_t1"
+    }
+  },
+  "result": {
+    "id": "microtech:battery_t2",
+    "count": 1
+  }
+}

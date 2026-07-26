@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "microtech:block/battery_t2", "y": 180 },
+    "facing=east": { "model": "microtech:block/battery_t2", "y": 270 },
+    "facing=south": { "model": "microtech:block/battery_t2", "y": 0 },
+    "facing=west": { "model": "microtech:block/battery_t2", "y": 90 }
+  }
+}

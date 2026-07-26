@@ -22,6 +22,7 @@ import net.neoforged.neoforge.event.entity.EntityMobGriefingEvent;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
@@ -31,7 +32,11 @@ public final class ControlledMobEvents {
     }
 
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
-        if (event.getLevel().isClientSide || !(event.getEntity() instanceof Mob mob)) {
+        if (event.getLevel().isClientSide) {
+            return;
+        }
+        ControlledTemporaryEntityTracker.registerIfControlled(event.getEntity());
+        if (!(event.getEntity() instanceof Mob mob)) {
             return;
         }
         if (ControlledMobData.isControlled(mob)) {
@@ -40,32 +45,30 @@ public final class ControlledMobEvents {
     }
 
     public static void onEntityLeaveLevel(EntityLeaveLevelEvent event) {
-        if (event.getLevel().isClientSide || !(event.getEntity() instanceof Mob mob)) {
+        if (event.getLevel().isClientSide) {
+            return;
+        }
+        ControlledTemporaryEntityTracker.unregister(event.getEntity());
+        if (!(event.getEntity() instanceof Mob mob)) {
             return;
         }
         ControlledMobManager.onMobUnloaded(mob);
     }
 
     public static void onLivingDamagePre(LivingDamageEvent.Pre event) {
-        if (Config.friendlyFire || event.getEntity().level().isClientSide) {
+        if (event.getEntity().level().isClientSide) {
             return;
         }
         Entity source = event.getSource().getEntity();
         Entity direct = event.getSource().getDirectEntity();
-        if (source instanceof LivingEntity attacker && ControlledMobManager.areAllies(attacker, event.getEntity())) {
+
+        Entity controlledSource = findControlledDamageSource(direct, source);
+        if (controlledSource != null && !ControlledMobAllianceService.canControlledMobDamage(controlledSource, event.getEntity())) {
             event.setNewDamage(0.0F);
-            if (attacker instanceof Mob mob) {
+            if (source instanceof Mob mob && ControlledMobAllianceService.isProtectedAlly(mob, event.getEntity())) {
                 mob.setTarget(null);
             }
         }
-        ControlledMobManager.getControlledBossSource(direct != null ? direct : source).ifPresent(boss -> {
-            boolean bossFriendlyFire = Config.controlledBossFriendlyFire
-                    || (boss instanceof net.minecraft.world.entity.boss.wither.WitherBoss && Config.controlledWitherDamagesAllies)
-                    || (boss instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon && Config.controlledDragonDamagesAllies);
-            if (!bossFriendlyFire && event.getEntity() instanceof LivingEntity target && ControlledMobManager.areAllies(boss, target)) {
-                event.setNewDamage(0.0F);
-            }
-        });
     }
 
     public static void onLivingDamagePost(LivingDamageEvent.Post event) {
@@ -75,6 +78,23 @@ public final class ControlledMobEvents {
         DamageSource source = event.getSource();
         Entity attacker = source.getEntity();
         ControlledMobManager.rememberDamage(event.getEntity(), attacker, event.getEntity().level().getGameTime());
+
+        if (!(event.getEntity().level() instanceof ServerLevel serverLevel) || !(event.getEntity() instanceof LivingEntity victim)) {
+            return;
+        }
+        if (attacker instanceof ServerPlayer controller) {
+            ControlledMobCommandTargetService.rememberControllerDamage(controller, victim, "controller_damage");
+        }
+        if (victim instanceof ServerPlayer controller && attacker instanceof LivingEntity livingAttacker) {
+            ControlledMobCommandTargetService.rememberControllerAttacker(controller, livingAttacker, "controller_attacked");
+        }
+        ControlledMobAllianceService.resolveController(victim).ifPresent(controller ->
+                {
+                    if (attacker instanceof LivingEntity livingAttacker) {
+                        ControlledMobCommandTargetService.rememberControlledAllyAttacker(controller, serverLevel, livingAttacker, "controlled_ally_attacked");
+                    }
+                }
+        );
     }
 
     public static void onLivingDeath(LivingDeathEvent event) {
@@ -148,8 +168,11 @@ public final class ControlledMobEvents {
             return;
         }
         Projectile projectile = event.getProjectile();
+        if (projectile.getOwner() instanceof ServerPlayer controller && hit.getEntity() instanceof LivingEntity target) {
+            ControlledMobCommandTargetService.rememberControllerDamage(controller, target, "controller_projectile");
+        }
         ControlledMobManager.getControlledBossSource(projectile).ifPresent(boss -> {
-            if (hit.getEntity() instanceof LivingEntity target && ControlledMobManager.areAllies(boss, target)) {
+            if (hit.getEntity() instanceof LivingEntity target && !ControlledMobAllianceService.canControlledMobDamage(projectile, target)) {
                 event.setCanceled(true);
             }
         });
@@ -167,25 +190,77 @@ public final class ControlledMobEvents {
             if (!blockGrief) {
                 event.getAffectedBlocks().clear();
             }
-            if (!Config.controlledBossFriendlyFire) {
-                event.getAffectedEntities().removeIf(entity -> entity instanceof LivingEntity living && ControlledMobManager.areAllies(boss, living));
+            if (!ControlledMobAllianceService.isFriendlyFireAllowed(source)) {
+                event.getAffectedEntities().removeIf(entity -> entity instanceof LivingEntity living && ControlledMobAllianceService.isProtectedAlly(boss, living));
             }
         });
     }
 
     public static void onEntityMobGriefing(EntityMobGriefingEvent event) {
+        if (event.getEntity() instanceof net.minecraft.world.entity.boss.wither.WitherBoss wither
+                && ControlledMobManager.isAdvancedControlledBoss(wither)
+                && !Config.controlledWitherBlockGriefing) {
+            event.setCanGrief(false);
+            return;
+        }
         if (event.getEntity() instanceof Mob mob && ControlledMobManager.isAdvancedControlledBoss(mob) && !Config.controlledBossBlockGriefing) {
             event.setCanGrief(false);
         }
     }
 
     public static void onMobEffectApplicable(MobEffectEvent.Applicable event) {
-        if (event.getEntity().level().isClientSide || event.getEffectInstance() == null || !event.getEffectInstance().is(MobEffects.DIG_SLOWDOWN)) {
+        if (event.getEntity().level().isClientSide || event.getEffectInstance() == null) {
             return;
         }
         Entity source = event.getEffectSource();
-        if (source instanceof ElderGuardian guardian && ControlledMobManager.isAdvancedControlledBoss(guardian) && ControlledMobManager.areAllies(guardian, event.getEntity())) {
+        if (event.getEffectInstance().is(MobEffects.DIG_SLOWDOWN)
+                && source instanceof ElderGuardian guardian
+                && ControlledMobManager.isAdvancedControlledBoss(guardian)
+                && ControlledMobAllianceService.isProtectedAlly(guardian, event.getEntity())) {
+            event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+            return;
+        }
+        if (event.getEffectInstance().is(MobEffects.DARKNESS)
+                && shouldBlockControlledWardenDarkness(source, event.getEntity())) {
+            event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+            return;
+        }
+        if (event.getEffectInstance().is(MobEffects.WITHER)
+                && source != null
+                && !ControlledMobAllianceService.canControlledMobDamage(source, event.getEntity())) {
             event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
         }
+    }
+
+    public static void onLivingChangeTarget(LivingChangeTargetEvent event) {
+        if (event.getEntity().level().isClientSide || !(event.getEntity() instanceof Mob mob) || !ControlledMobData.isControlled(mob)) {
+            return;
+        }
+
+        LivingEntity newTarget = event.getNewAboutToBeSetTarget();
+        if (newTarget != null && !ControlledMobAllianceService.canControlledMobTarget(mob, newTarget)) {
+            event.setCanceled(true);
+        }
+    }
+
+    private static Entity findControlledDamageSource(Entity direct, Entity source) {
+        if (direct != null && (ControlledMobAllianceService.resolveController(direct).isPresent()
+                || ControlledTemporaryEntityTracker.resolveCreator(direct).filter(ControlledMobData::isControlled).isPresent())) {
+            return direct;
+        }
+        if (source != null && ControlledMobAllianceService.resolveController(source).isPresent()) {
+            return source;
+        }
+        return null;
+    }
+
+    private static boolean shouldBlockControlledWardenDarkness(Entity source, LivingEntity target) {
+        if (source instanceof net.minecraft.world.entity.monster.warden.Warden warden
+                && ControlledMobManager.isAdvancedControlledBoss(warden)
+                && ControlledMobAllianceService.isProtectedAlly(warden, target)) {
+            return true;
+        }
+        return source == null
+                && ControlledWardenDarknessTracker.wasRecentlyEmittedByControlledWardenAtProtectedTarget(target);
     }
 }

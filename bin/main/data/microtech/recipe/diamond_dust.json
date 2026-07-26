@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:smelting",
+  "ingredient": {
+    "item": "microtech:diamond_dust"
+  },
+  "result": {
+    "id": "minecraft:diamond",
+    "count": 1
+  },
+  "experience": 0.1,
+  "cookingtime": 200
+}

@@ -93,6 +93,12 @@ public class Config {
     public static final ModConfigSpec.IntValue CONTROLLER_CHIP_THREAT_MEMORY_TICKS = BUILDER
             .comment("Ticks before remembered controller threats expire.")
             .defineInRange("controllerChipThreatMemoryTicks", 200, 20, 1200);
+    public static final ModConfigSpec.IntValue CONTROLLED_TARGET_COMMAND_DURATION = BUILDER
+            .comment("Ticks before a controller-issued attack target expires.")
+            .defineInRange("controlledTargetCommandDuration", 400, 20, 2400);
+    public static final ModConfigSpec.DoubleValue CONTROLLED_TARGET_MAXIMUM_DISTANCE = BUILDER
+            .comment("Maximum distance for controller-issued attack targets.")
+            .defineInRange("controlledTargetMaximumDistance", 64.0D, 4.0D, 256.0D);
     public static final ModConfigSpec.BooleanValue ENABLE_PASSIVE_MOB_BUFFS = BUILDER
             .comment("Allows support-role controlled passive mobs to grant short buffs to their controller.")
             .define("enablePassiveMobBuffs", true);
@@ -144,6 +150,7 @@ public class Config {
     public static final ModConfigSpec.BooleanValue ADVANCED_CHIP_ALLOW_WARDEN = BUILDER.define("advancedChipAllowWarden", true);
     public static final ModConfigSpec.BooleanValue ADVANCED_CHIP_ALLOW_ELDER_GUARDIAN = BUILDER.define("advancedChipAllowElderGuardian", true);
     public static final ModConfigSpec.BooleanValue CONTROLLED_WITHER_BLOCK_GRIEFING = BUILDER.define("controlledWitherBlockGriefing", false);
+    public static final ModConfigSpec.BooleanValue CONTROLLED_WITHER_FRIENDLY_FIRE = BUILDER.define("controlledWitherFriendlyFire", false);
     public static final ModConfigSpec.BooleanValue CONTROLLED_WITHER_DAMAGES_ALLIES = BUILDER.define("controlledWitherDamagesAllies", false);
     public static final ModConfigSpec.BooleanValue CONTROLLED_DRAGON_BLOCK_GRIEFING = BUILDER.define("controlledDragonBlockGriefing", false);
     public static final ModConfigSpec.BooleanValue CONTROLLED_DRAGON_DAMAGES_ALLIES = BUILDER.define("controlledDragonDamagesAllies", false);
@@ -190,6 +197,8 @@ public class Config {
     public static boolean controllerChipAllowCreeperExplosion;
     public static boolean controllerChipAllowVillagers;
     public static int controllerChipThreatMemoryTicks;
+    public static int controlledTargetCommandDuration;
+    public static double controlledTargetMaximumDistance;
     public static boolean enablePassiveMobBuffs;
     public static double passiveBuffRadius;
     public static int passiveBuffRefreshInterval;
@@ -223,6 +232,7 @@ public class Config {
     public static boolean advancedChipAllowWarden;
     public static boolean advancedChipAllowElderGuardian;
     public static boolean controlledWitherBlockGriefing;
+    public static boolean controlledWitherFriendlyFire;
     public static boolean controlledWitherDamagesAllies;
     public static boolean controlledDragonBlockGriefing;
     public static boolean controlledDragonDamagesAllies;
@@ -320,6 +330,8 @@ public class Config {
         controllerChipAllowCreeperExplosion = CONTROLLER_CHIP_ALLOW_CREEPER_EXPLOSION.get();
         controllerChipAllowVillagers = CONTROLLER_CHIP_ALLOW_VILLAGERS.get();
         controllerChipThreatMemoryTicks = CONTROLLER_CHIP_THREAT_MEMORY_TICKS.get();
+        controlledTargetCommandDuration = CONTROLLED_TARGET_COMMAND_DURATION.get();
+        controlledTargetMaximumDistance = CONTROLLED_TARGET_MAXIMUM_DISTANCE.get();
         enablePassiveMobBuffs = ENABLE_PASSIVE_MOB_BUFFS.get();
         passiveBuffRadius = PASSIVE_BUFF_RADIUS.get();
         passiveBuffRefreshInterval = PASSIVE_BUFF_REFRESH_INTERVAL.get();
@@ -353,6 +365,7 @@ public class Config {
         advancedChipAllowWarden = ADVANCED_CHIP_ALLOW_WARDEN.get();
         advancedChipAllowElderGuardian = ADVANCED_CHIP_ALLOW_ELDER_GUARDIAN.get();
         controlledWitherBlockGriefing = CONTROLLED_WITHER_BLOCK_GRIEFING.get();
+        controlledWitherFriendlyFire = CONTROLLED_WITHER_FRIENDLY_FIRE.get();
         controlledWitherDamagesAllies = CONTROLLED_WITHER_DAMAGES_ALLIES.get();
         controlledDragonBlockGriefing = CONTROLLED_DRAGON_BLOCK_GRIEFING.get();
         controlledDragonDamagesAllies = CONTROLLED_DRAGON_DAMAGES_ALLIES.get();

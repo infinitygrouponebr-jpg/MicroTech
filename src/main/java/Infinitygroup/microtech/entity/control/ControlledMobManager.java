@@ -167,18 +167,8 @@ public final class ControlledMobManager {
     }
 
     public static boolean areAllies(LivingEntity first, LivingEntity second) {
-        if (first == second) {
-            return true;
-        }
-        Optional<UUID> firstOwner = ownerOrController(first);
-        Optional<UUID> secondOwner = ownerOrController(second);
-        if (first.isAlliedTo(second) || second.isAlliedTo(first)) {
-            return true;
-        }
-        if (firstOwner.isEmpty() || secondOwner.isEmpty()) {
-            return false;
-        }
-        return firstOwner.get().equals(secondOwner.get());
+        return first == second || ControlledMobAllianceService.hasSameController(first, second)
+                || first.isAlliedTo(second) || second.isAlliedTo(first);
     }
 
     public static boolean isValidTarget(Mob mob, LivingEntity target, ServerPlayer controller, double radius) {
@@ -191,7 +181,7 @@ public final class ControlledMobManager {
         if (mob.distanceToSqr(target) > radius * radius) {
             return false;
         }
-        if (areAllies(controller, target) || areAllies(mob, target)) {
+        if (!ControlledMobAllianceService.canControlledMobTarget(mob, target)) {
             return false;
         }
         return ControlledMobBehaviorRegistry.get(mob).canKeepTarget(mob, target, controller);
@@ -264,7 +254,7 @@ public final class ControlledMobManager {
 
     private static ApplyResult canInstallAdvanced(Mob mob, ServerPlayer player) {
         if (!Config.advancedControllerChipEnabled) {
-            return ApplyResult.disabled();
+            return ApplyResult.advancedDisabled();
         }
         if (!mob.isAlive() || mob.distanceToSqr(player) > APPLY_DISTANCE_SQR) {
             return ApplyResult.invalid();
@@ -313,20 +303,6 @@ public final class ControlledMobManager {
         return ApplyResult.SUCCESS;
     }
 
-    private static Optional<UUID> ownerOrController(LivingEntity entity) {
-        Optional<UUID> controlled = ControlledMobData.getController(entity);
-        if (controlled.isPresent()) {
-            return controlled;
-        }
-        if (entity instanceof Player player) {
-            return Optional.of(player.getUUID());
-        }
-        if (entity instanceof OwnableEntity ownable && ownable.getOwnerUUID() != null) {
-            return Optional.of(ownable.getOwnerUUID());
-        }
-        return Optional.empty();
-    }
-
     private static ServerPlayer getController(Mob mob) {
         if (!(mob.level() instanceof ServerLevel serverLevel)) {
             return null;
@@ -341,6 +317,11 @@ public final class ControlledMobManager {
         ControlledMobCombatRole role = ControlledMobCombatManager.getRole(mob);
         if (!ControlledMobCombatManager.canAttack(role)) {
             return null;
+        }
+
+        LivingEntity commanded = ControlledMobCommandTargetService.getCommandedTarget(mob, controller).orElse(null);
+        if (commanded != null) {
+            return commanded;
         }
 
         LivingEntity remembered = getRememberedTarget(mob, controller, radius);
@@ -516,6 +497,10 @@ public final class ControlledMobManager {
         if (source instanceof Projectile projectile && projectile.getOwner() instanceof Mob owner && isAdvancedControlledBoss(owner)) {
             return Optional.of(owner);
         }
+        Optional<Entity> trackedCreator = ControlledTemporaryEntityTracker.resolveCreator(source);
+        if (trackedCreator.isPresent() && trackedCreator.get() instanceof Mob mob && isAdvancedControlledBoss(mob)) {
+            return Optional.of(mob);
+        }
         return Optional.empty();
     }
 
@@ -620,6 +605,10 @@ public final class ControlledMobManager {
             return new ApplyResult(false, "message.microtech.controller_chip.disabled");
         }
 
+        private static ApplyResult advancedDisabled() {
+            return new ApplyResult(false, "message.microtech.advanced_controller_chip.disabled");
+        }
+
         private static ApplyResult invalid() {
             return new ApplyResult(false, "message.microtech.controller_chip.invalid");
         }
@@ -716,6 +705,13 @@ public final class ControlledMobManager {
             if (controller == null) {
                 this.mob.setTarget(null);
                 return;
+            }
+            if (this.mob.tickCount % 80 == 0) {
+                ControlledMobCommandTargetService.cleanup(this.mob.level());
+                ControlledTemporaryEntityTracker.cleanup(this.mob.level());
+                if (this.mob.level() instanceof ServerLevel serverLevel) {
+                    ControlledWardenDarknessTracker.cleanup(serverLevel);
+                }
             }
             ControlledMobBehaviorRegistry.get(this.mob).tick(this.mob, controller);
             if (ControlledMobData.getTier(this.mob) == ControlledMobTier.ADVANCED && isBossLike(this.mob)) {

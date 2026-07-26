@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " C ",
+    " B ",
+    "DSD"
+  ],
+  "key": {
+    "C": {
+      "item": "microtech:energy_converter_t1"
+    },
+    "B": {
+      "item": "microtech:battery_t1"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "S": {
+      "item": "minecraft:diamond_sword"
+    }
+  },
+  "result": {
+    "id": "microtech:tech_sword",
+    "count": 1
+  }
+}

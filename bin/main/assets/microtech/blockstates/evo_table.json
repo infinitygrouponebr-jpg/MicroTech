@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "microtech:block/evo_table_placeholder", "y": 180 },
+    "facing=east": { "model": "microtech:block/evo_table_placeholder", "y": 270 },
+    "facing=south": { "model": "microtech:block/evo_table_placeholder", "y": 0 },
+    "facing=west": { "model": "microtech:block/evo_table_placeholder", "y": 90 }
+  }
+}

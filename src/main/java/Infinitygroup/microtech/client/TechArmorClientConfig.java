@@ -41,6 +41,18 @@ public final class TechArmorClientConfig {
             .comment("Show simulated or real energy values on the Tech Armor HUD.")
             .define("showEnergy", true);
 
+    public static final ModConfigSpec.BooleanValue USE_SEPARATED_TECH_MINER_LAYOUT = BUILDER
+            .comment("Use the experimental separated Tech Miner screen layout when the current GUI size can fit it.")
+            .define("useSeparatedTechMinerLayout", true);
+
+    public static final ModConfigSpec.DoubleValue SEPARATED_TECH_MINER_BACKGROUND_DIM = BUILDER
+            .comment("Screen dim amount for the separated Tech Miner layout. The world remains visible behind the panels.")
+            .defineInRange("separatedLayoutBackgroundDim", 0.15D, 0.0D, 1.0D);
+
+    public static final ModConfigSpec.BooleanValue DEBUG_TECH_MINER_GUI_BOUNDS = BUILDER
+            .comment("Draw debug outlines for the Tech Miner GUI panels, slots, buttons, and bars.")
+            .define("debugTechMinerGuiBounds", false);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private TechArmorClientConfig() {
